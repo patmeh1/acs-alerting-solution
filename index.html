@@ -360,12 +360,15 @@
       </div>
       <nav id="sideNav">
         <a href="#overview">Overview</a>
+        <a href="#use-case">Updated use case</a>
         <a href="#architecture">Architecture diagram</a>
         <a href="#implementation">Implementation</a>
+        <a href="#build-guide">Step-by-step build</a>
         <a href="#short-term">Short-term plan</a>
         <a href="#long-term">Long-term plan</a>
         <a href="#cost">Cost model</a>
         <a href="#requirements">Requirements</a>
+        <a href="#questions">Questions to resolve</a>
         <a href="#options">Other options</a>
         <a href="#risks">Risks and decisions</a>
       </nav>
@@ -373,12 +376,15 @@
     <main>
       <select class="mobile-nav" id="mobileNav" aria-label="Navigate sections">
         <option value="#overview">Overview</option>
+        <option value="#use-case">Updated use case</option>
         <option value="#architecture">Architecture diagram</option>
         <option value="#implementation">Implementation</option>
+        <option value="#build-guide">Step-by-step build</option>
         <option value="#short-term">Short-term plan</option>
         <option value="#long-term">Long-term plan</option>
         <option value="#cost">Cost model</option>
         <option value="#requirements">Requirements</option>
+        <option value="#questions">Questions to resolve</option>
         <option value="#options">Other options</option>
         <option value="#risks">Risks and decisions</option>
       </select>
@@ -410,6 +416,66 @@
             <h3>Standalone ACS SMS</h3>
             <p class="muted">ACS SMS is listed in the retirement scope. It can run during the transition window, but it is not a durable target architecture for this use case.</p>
           </div>
+        </div>
+      </section>
+
+      <section class="section" id="use-case">
+        <div class="eyebrow">Updated use case</div>
+        <h2>What changes with the added detail</h2>
+        <p class="muted">The added writeup suggests Outlook, monitoring systems, or batch jobs flow through Logic Apps, Azure Functions, ACS, voice calls, and Event Grid. The overall event-processing pattern is still sound, but the ACS portion should be revised because ACS SMS is in the retirement scope and standalone ACS calling/call automation is not the preferred long-term target unless it is aligned to supported Teams scenarios.</p>
+        <div class="grid two">
+          <div class="card">
+            <h3>Original pattern from the added detail</h3>
+            <pre><code>Outlook / Monitoring System / Batch Job
+  -> Azure Logic App
+  -> Azure Function
+  -> Azure Communication Services
+  -> Voice Call / SMS
+  -> Event Grid status tracking</code></pre>
+          </div>
+          <div class="card">
+            <h3>Revised Microsoft-native pattern</h3>
+            <pre><code>Outlook / Monitoring System / Batch Job / Event Hub
+  -> Logic App or Azure Function
+  -> Log Analytics or Application Insights
+  -> Azure Monitor Alert Rule
+  -> Action Group
+  -> Voice call + SMS + email + push + ITSM/webhook</code></pre>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Scenario</th>
+              <th>Primary channel</th>
+              <th>Why</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Critical failures, outages, Sev1 production incidents</td>
+              <td>Voice call plus SMS</td>
+              <td>Voice is more likely to wake the on-call engineer; SMS provides a written summary.</td>
+            </tr>
+            <tr>
+              <td>Escalations or after-hours alerts</td>
+              <td>Voice call plus SMS plus email</td>
+              <td>Escalation requires redundancy across channels.</td>
+            </tr>
+            <tr>
+              <td>Immediate attention required but not full outage</td>
+              <td>SMS plus Azure mobile push</td>
+              <td>Fast notification without interruptive phone call unless unacknowledged.</td>
+            </tr>
+            <tr>
+              <td>Simple notifications or FYI alerts</td>
+              <td>Email or Teams notification</td>
+              <td>Reduces fatigue and avoids unnecessary SMS/voice spend.</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="callout">
+          <strong>Example message:</strong> Attention: Claims pipeline batch job failed at 2:15 AM. Immediate review required. Application: ClaimsPipeline. Severity: Sev1. Incident: INC000000.
         </div>
       </section>
 
@@ -582,6 +648,180 @@
         </table>
       </section>
 
+      <section class="section" id="build-guide">
+        <div class="eyebrow">Step-by-step build</div>
+        <h2>Detailed implementation guide</h2>
+        <p class="muted">The following example uses Azure CLI and Bicep-style snippets to build a pilot. Names and SKUs should be adjusted to AF Group standards before production deployment.</p>
+
+        <div class="card">
+          <h3>1. Set deployment variables</h3>
+          <pre><code>export LOCATION="eastus"
+export RG="rg-af-critical-alerting-pilot"
+export LAW="law-af-alerting-pilot"
+export ACTION_GROUP="ag-af-oncall-sev1"
+export ALERT_RULE="ar-af-critical-alerts"
+export FUNC_APP="func-af-alert-normalizer-$RANDOM"
+export STORAGE="stafalert$RANDOM"
+export EVENTHUB_NS="evhns-af-alerting-$RANDOM"
+export EVENTHUB_NAME="critical-alerts"</code></pre>
+        </div>
+
+        <div class="card">
+          <h3>2. Create core Azure resources</h3>
+          <pre><code>az group create --name "$RG" --location "$LOCATION"
+
+az monitor log-analytics workspace create \
+  --resource-group "$RG" \
+  --workspace-name "$LAW" \
+  --location "$LOCATION"
+
+az storage account create \
+  --resource-group "$RG" \
+  --name "$STORAGE" \
+  --location "$LOCATION" \
+  --sku Standard_LRS
+
+az functionapp create \
+  --resource-group "$RG" \
+  --name "$FUNC_APP" \
+  --storage-account "$STORAGE" \
+  --consumption-plan-location "$LOCATION" \
+  --runtime python \
+  --runtime-version 3.11 \
+  --functions-version 4</code></pre>
+        </div>
+
+        <div class="card">
+          <h3>3. Create Event Hub intake for application and scheduler events</h3>
+          <pre><code>az eventhubs namespace create \
+  --resource-group "$RG" \
+  --name "$EVENTHUB_NS" \
+  --location "$LOCATION" \
+  --sku Standard
+
+az eventhubs eventhub create \
+  --resource-group "$RG" \
+  --namespace-name "$EVENTHUB_NS" \
+  --name "$EVENTHUB_NAME" \
+  --partition-count 2 \
+  --message-retention 1</code></pre>
+        </div>
+
+        <div class="card">
+          <h3>4. Define a normalized alert event schema</h3>
+          <pre><code>{
+  "source": "claims-batch-scheduler",
+  "application": "ClaimsPipeline",
+  "severity": "Sev1",
+  "summary": "Claims pipeline batch job failed",
+  "details": "Job failed at 2:15 AM. Immediate review required.",
+  "incidentId": "INC000000",
+  "ownerGroup": "DnA Production Support",
+  "eventTimeUtc": "2026-06-09T07:15:00Z",
+  "dedupeKey": "ClaimsPipeline:BatchFailure:Sev1"
+}</code></pre>
+        </div>
+
+        <div class="card">
+          <h3>5. Sample Azure Function normalizer</h3>
+          <p class="muted">This function shows the transformation logic. In production, send data to Azure Monitor using the Logs Ingestion API with a Data Collection Rule rather than the legacy HTTP Data Collector API.</p>
+          <pre><code>import json
+import logging
+import azure.functions as func
+
+app = func.FunctionApp()
+
+@app.event_hub_message_trigger(
+    arg_name="event",
+    event_hub_name="%EVENTHUB_NAME%",
+    connection="EVENTHUB_CONNECTION"
+)
+def normalize_alert(event: func.EventHubEvent):
+    payload = json.loads(event.get_body().decode("utf-8"))
+
+    normalized = {
+        "Source": payload.get("source", "unknown"),
+        "Application": payload.get("application", "unknown"),
+        "Severity": payload.get("severity", "Sev3"),
+        "Summary": payload.get("summary", "Alert received"),
+        "Details": payload.get("details", ""),
+        "IncidentId": payload.get("incidentId", ""),
+        "OwnerGroup": payload.get("ownerGroup", "Unassigned"),
+        "DedupeKey": payload.get("dedupeKey", ""),
+    }
+
+    if normalized["Severity"] == "Sev1":
+        logging.error("CRITICAL_ALERT %s", json.dumps(normalized))
+    else:
+        logging.warning("ALERT %s", json.dumps(normalized))</code></pre>
+        </div>
+
+        <div class="card">
+          <h3>6. Create an Action Group for voice and SMS</h3>
+          <p class="muted">Replace the sample phone number and email with approved on-call contacts. Test every recipient before production use.</p>
+          <pre><code>az monitor action-group create \
+  --resource-group "$RG" \
+  --name "$ACTION_GROUP" \
+  --short-name "AFSEV1" \
+  --action email oncall-email oncall@example.com \
+  --action sms oncall-sms 1 5550101234 \
+  --action voice oncall-voice 1 5550101234</code></pre>
+        </div>
+
+        <div class="card">
+          <h3>7. Create a scheduled query alert</h3>
+          <p class="muted">The final KQL depends on the chosen ingestion table. This sample illustrates the target behavior: fire only for recent Sev1 normalized alerts.</p>
+          <pre><code>let window = 5m;
+AlertEvents_CL
+| where TimeGenerated > ago(window)
+| where Severity_s == "Sev1"
+| summarize Count=count() by DedupeKey_s, Application_s, Summary_s</code></pre>
+          <pre><code>LAW_ID=$(az monitor log-analytics workspace show \
+  --resource-group "$RG" \
+  --workspace-name "$LAW" \
+  --query id -o tsv)
+
+AG_ID=$(az monitor action-group show \
+  --resource-group "$RG" \
+  --name "$ACTION_GROUP" \
+  --query id -o tsv)
+
+az monitor scheduled-query create \
+  --resource-group "$RG" \
+  --name "$ALERT_RULE" \
+  --scopes "$LAW_ID" \
+  --condition "count 'AlertEvents_CL | where TimeGenerated > ago(5m) | where Severity_s == \"Sev1\"' > 0" \
+  --condition-query AlertEvents_CL \
+  --evaluation-frequency 5m \
+  --window-size 5m \
+  --severity 1 \
+  --action-groups "$AG_ID" \
+  --description "AF Group Sev1 critical alert notification"</code></pre>
+        </div>
+
+        <div class="card">
+          <h3>8. Logic App option for monitored mailbox intake</h3>
+          <pre><code>Trigger: When a new email arrives in shared mailbox
+Condition: Subject/body contains "CRITICAL", "FAILED", or configured job names
+Action: Compose normalized alert JSON
+Action: Send event to Event Hub or call HTTP-triggered Function
+Action: Write audit record to Log Analytics
+Action: Optional Teams message to production support channel</code></pre>
+        </div>
+
+        <div class="card">
+          <h3>9. Validate the pilot</h3>
+          <ul>
+            <li>Send a synthetic Event Hub message for a Sev1 batch failure.</li>
+            <li>Confirm Function logs show one normalized alert event.</li>
+            <li>Confirm Azure Monitor alert fires within the expected evaluation window.</li>
+            <li>Confirm Action Group sends voice, SMS, email, and push notifications.</li>
+            <li>Confirm duplicate payloads do not create repeated phone calls during the dedupe window.</li>
+            <li>Confirm a planned maintenance processing rule suppresses notifications when expected.</li>
+          </ul>
+        </div>
+      </section>
+
       <section class="section" id="short-term">
         <div class="eyebrow">Short-term</div>
         <h2>Stabilize the existing alerting gap</h2>
@@ -710,6 +950,52 @@
             </ul>
           </div>
         </div>
+      </section>
+
+      <section class="section" id="questions">
+        <div class="eyebrow">Open questions</div>
+        <h2>What is missing or should be confirmed</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Question</th>
+              <th>Why it matters</th>
+              <th>Decision impact</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Which countries and carriers must receive SMS and voice calls?</td>
+              <td>Azure Monitor Action Group SMS and voice availability varies by country/region.</td>
+              <td>May require Teams Phone Extensibility or Marketplace partner fallback for unsupported destinations.</td>
+            </tr>
+            <tr>
+              <td>Where is the source of truth for the on-call rotation?</td>
+              <td>Static Action Groups work for small teams, but dynamic rotations need automation or integration with a scheduling system.</td>
+              <td>Determines whether to manage Action Groups manually, update them through automation, or integrate an on-call platform.</td>
+            </tr>
+            <tr>
+              <td>Do alerts require acknowledgment and escalation if nobody responds?</td>
+              <td>Action Groups notify; they are not a full incident acknowledgment workflow by themselves.</td>
+              <td>May require ITSM integration, Teams workflow, Logic App escalation, or an on-call product.</td>
+            </tr>
+            <tr>
+              <td>What are the expected alert volumes and peak storm scenarios?</td>
+              <td>Cost and alert fatigue depend on frequency, retries, deduplication, and severity filtering.</td>
+              <td>Determines dedupe design, severity thresholds, and suppression strategy.</td>
+            </tr>
+            <tr>
+              <td>Are toll-free numbers or registered business caller IDs mandatory?</td>
+              <td>The screenshot mentions toll-free and registered business numbers, but Action Group notifications use Microsoft-managed notification delivery rather than a custom ACS caller ID.</td>
+              <td>If branded caller ID is mandatory, evaluate Teams Phone Extensibility or a communications partner.</td>
+            </tr>
+            <tr>
+              <td>Is this only for Azure workloads, or also on-premises and third-party jobs?</td>
+              <td>Non-Azure sources need explicit ingestion through Event Hub, Logic Apps, Functions, or the Logs Ingestion API.</td>
+              <td>Determines connectivity, identity, firewall, and monitoring design.</td>
+            </tr>
+          </tbody>
+        </table>
       </section>
 
       <section class="section" id="options">
