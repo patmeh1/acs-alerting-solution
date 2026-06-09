@@ -1,4 +1,4 @@
-"""AF Group alert normalizer.
+"""the customer alert normalizer.
 
 Two triggers:
 1. Event Hub trigger - normalizes payloads coming from app code, scheduler hooks,

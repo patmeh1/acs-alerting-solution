@@ -8,7 +8,7 @@
     },
     "eventHubNamespace": {
       "type": "String",
-      "defaultValue": "afalert-ehns-replace"
+      "defaultValue": "oncall-ehns-replace"
     },
     "eventHubName": {
       "type": "String",
@@ -63,7 +63,7 @@
             "summary": "@{triggerBody()?['subject']}",
             "details": "@{triggerBody()?['bodyPreview']}",
             "incidentId": "",
-            "ownerGroup": "DnA Production Support",
+            "ownerGroup": "Production Support",
             "eventTimeUtc": "@{utcNow()}",
             "dedupeKey": "mailbox:@{triggerBody()?['subject']}"
           }

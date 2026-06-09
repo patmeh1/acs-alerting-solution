@@ -52,7 +52,7 @@
           {
             "type": "Action.OpenUrl",
             "title": "Open runbook",
-            "url": "https://aka.ms/af-group-oncall-runbook"
+            "url": "https://example.com/runbooks/on-call"
           },
           {
             "type": "Action.OpenUrl",

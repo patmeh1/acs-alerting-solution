@@ -3,7 +3,7 @@
   "contentVersion": "1.0.0.0",
   "parameters": {
     "namePrefix": {
-      "value": "afalert"
+      "value": "oncall"
     },
     "location": {
       "value": "eastus"
@@ -26,8 +26,8 @@
     "tags": {
       "value": {
         "workload": "critical-alerting",
-        "owner": "DnA-Production-Support",
-        "costCenter": "af-group-dna",
+        "owner": "Production-Support",
+        "costCenter": "production-support",
         "environment": "pilot"
       }
     }

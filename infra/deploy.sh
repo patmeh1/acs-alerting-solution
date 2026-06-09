@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# One-shot deploy for the AF Group critical alerting pilot.
+# One-shot deploy for the critical alerting pilot.
 # Edit main.parameters.json (or pass --parameters overrides) before running.
 set -euo pipefail
 
 LOCATION="${LOCATION:-eastus}"
-RG="${RG:-rg-af-critical-alerting-pilot}"
-DEPLOYMENT_NAME="afalert-$(date -u +%Y%m%d-%H%M%S)"
+RG="${RG:-rg-critical-alerting-pilot}"
+DEPLOYMENT_NAME="oncall-$(date -u +%Y%m%d-%H%M%S)"
 
 echo "==> Ensuring resource group ${RG} in ${LOCATION}"
 az group create --name "${RG}" --location "${LOCATION}" --output none

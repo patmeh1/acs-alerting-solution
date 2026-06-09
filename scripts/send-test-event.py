@@ -2,7 +2,7 @@
 
 Usage:
     pip install azure-eventhub azure-identity
-    export EVENTHUB_NAMESPACE=afalert-ehns-xxxxx
+    export EVENTHUB_NAMESPACE=oncall-ehns-xxxxx
     export EVENTHUB_NAME=critical-alerts
     python scripts/send-test-event.py [--severity Sev1] [--count 1]
 
@@ -25,18 +25,18 @@ from azure.identity import DefaultAzureCredential
 def build_payload(severity: str) -> dict:
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
     return {
-        "source": "claims-batch-scheduler",
-        "application": "ClaimsPipeline",
+        "source": "nightly-batch-scheduler",
+        "application": "OrdersPipeline",
         "severity": severity,
-        "summary": "Claims pipeline batch job failed",
+        "summary": "Nightly batch job failed",
         "details": (
-            f"Job 'NightlyClaimsETL' failed at {now}. "
+            f"Job 'NightlyOrdersETL' failed at {now}. "
             "Last successful run > 24h ago. Immediate review required."
         ),
         "incidentId": f"INC{int(time.time())}",
-        "ownerGroup": "DnA Production Support",
+        "ownerGroup": "Production Support",
         "eventTimeUtc": now,
-        "dedupeKey": f"ClaimsPipeline:BatchFailure:{severity}",
+        "dedupeKey": f"OrdersPipeline:BatchFailure:{severity}",
     }
 
 
@@ -58,7 +58,7 @@ def main() -> None:
     )
 
     with producer:
-        batch = producer.create_batch(partition_key="ClaimsPipeline")
+        batch = producer.create_batch(partition_key="OrdersPipeline")
         for _ in range(args.count):
             payload = build_payload(args.severity)
             batch.add(EventData(json.dumps(payload)))

@@ -10,7 +10,7 @@
 
 ## Workload assumptions
 
-The pilot is sized for AF Group's DnA on-call rotation:
+The pilot is sized for the customer's on-call rotation:
 
 | Assumption | Pilot | Production |
 | --- | --- | --- |
@@ -66,20 +66,20 @@ The pilot is sized for AF Group's DnA on-call rotation:
 > above were drawn from list prices in mid-2026 and **should not be treated as
 > a quote**.
 
-## How the new stack compares to ACS
+## How the new stack compares to the alternatives we ruled out
 
-| Aspect | Today: VTEXT email-to-SMS | New: Azure Monitor Action Groups | Alternative we ruled out: standalone ACS SMS |
+| Aspect | Today: carrier email-to-SMS | New: Azure Monitor Action Groups | Alternative ruled out: standalone SMS/voice CPaaS without long-term roadmap (e.g. ACS SMS during its retirement window) |
 | --- | --- | --- | --- |
-| Monthly notification cost (pilot) | $0 (carrier-funded, but breaking) | ~$31 | ~$50–80 (per-message SMS + phone number rental + ACS Call Automation usage) |
-| SMS reliability | Carrier-dependent; some carriers have already disabled email-to-SMS | Microsoft-managed delivery network, SLA-backed | Subject to ACS retirement (announced July 22, 2026; full retirement July 31, 2028) |
-| Voice call support | None | First-party, no code | Possible but on the retirement path |
+| Monthly notification cost (pilot) | $0 (carrier-funded, but breaking) | ~$31 | ~$50–80 (per-message SMS + phone number rental + call-automation usage) |
+| SMS reliability | Carrier-dependent; some carriers have already disabled email-to-SMS | Microsoft-managed delivery network, SLA-backed | Workable today, but tied to a product without published long-term support |
+| Voice call support | None | First-party, no code | Possible, but anchored on a product without LTS commitment |
 | Long-term viability | At-risk | Strategic | Not viable for a new build |
-| Engineering effort to operate | Minimal but fragile | Low (Azure-native config) | Higher (custom SMS / phone-number lifecycle) |
+| Engineering effort to operate | Minimal but fragile | Low (Azure-native config) | Higher (custom SMS / phone-number lifecycle + replatform risk) |
 
 ## Cost-control levers
 
 * **Reserve voice calls for Sev1 only.** Email + push for lower severities — both
-  remain free at any realistic AF Group volume.
+  remain free at any realistic customer volume.
 * **Dedupe before the alert rule fires** — the `DedupeKey_s` field in the
   normalized record collapses repeats so the on-call is paged once per
   incident, not once per noisy log line.

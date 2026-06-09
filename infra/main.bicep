@@ -1,4 +1,4 @@
-// AF Group critical alerting - pilot infrastructure.
+// critical alerting - pilot infrastructure.
 // Deploys: Log Analytics, App Insights, Storage, Function App (consumption, Python 3.11),
 // Event Hubs namespace + hub, Action Group (email + SMS + voice + Teams webhook),
 // and a scheduled query alert rule that fires on Sev1 normalized events.
@@ -11,7 +11,7 @@ targetScope = 'resourceGroup'
 @description('Short prefix used to build resource names. Lowercase, 3-10 chars.')
 @minLength(3)
 @maxLength(10)
-param namePrefix string = 'afalert'
+param namePrefix string = 'oncall'
 
 @description('Azure region for all resources.')
 param location string = resourceGroup().location
@@ -35,8 +35,8 @@ param logAnalyticsDailyCapGb int = 1
 @description('Tags applied to every resource.')
 param tags object = {
   workload: 'critical-alerting'
-  owner: 'DnA-Production-Support'
-  costCenter: 'af-group-dna'
+  owner: 'Production-Support'
+  costCenter: 'production-support'
 }
 
 var suffix = uniqueString(resourceGroup().id, namePrefix)
@@ -206,7 +206,7 @@ resource actionGroup 'Microsoft.Insights/actionGroups@2024-10-01-preview' = {
   location: 'global'
   tags: tags
   properties: {
-    groupShortName: 'AFSEV1'
+    groupShortName: 'ONCALL'
     enabled: true
     emailReceivers: [
       {
@@ -251,7 +251,7 @@ resource alertRule 'Microsoft.Insights/scheduledQueryRules@2023-03-15-preview' =
   location: location
   tags: tags
   properties: {
-    displayName: 'AF Group Sev1 critical alert'
+    displayName: 'the customer Sev1 critical alert'
     description: 'Fires when a normalized Sev1 alert event is ingested into AlertEvents_CL. Routes to the on-call Action Group for SMS + voice + email + push.'
     severity: 1
     enabled: true
@@ -283,7 +283,7 @@ resource alertRule 'Microsoft.Insights/scheduledQueryRules@2023-03-15-preview' =
         actionGroup.id
       ]
       customProperties: {
-        runbook: 'https://aka.ms/af-group-oncall-runbook'
+        runbook: 'https://example.com/runbooks/on-call'
       }
     }
   }

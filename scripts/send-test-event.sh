@@ -5,7 +5,7 @@
 # the next 5-minute evaluation window.
 set -euo pipefail
 
-RG="${RG:-rg-af-critical-alerting-pilot}"
+RG="${RG:-rg-critical-alerting-pilot}"
 NAMESPACE="${NAMESPACE:-}"  # auto-discovered if blank
 HUB="${HUB:-critical-alerts}"
 AUTH_RULE="${AUTH_RULE:-RootManageSharedAccessKey}"
@@ -39,15 +39,15 @@ SAS="SharedAccessSignature sr=${ENCODED_URI}&sig=${ENCODED_SIG}&se=${EXPIRY}&skn
 NOW_UTC=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 PAYLOAD=$(cat <<JSON
 {
-  "source": "claims-batch-scheduler",
-  "application": "ClaimsPipeline",
+  "source": "nightly-batch-scheduler",
+  "application": "OrdersPipeline",
   "severity": "${SEVERITY}",
-  "summary": "Claims pipeline batch job failed",
-  "details": "Job 'NightlyClaimsETL' failed at ${NOW_UTC}. Last successful run > 24h ago. Immediate review required.",
+  "summary": "Nightly batch job failed",
+  "details": "Job 'NightlyOrdersETL' failed at ${NOW_UTC}. Last successful run > 24h ago. Immediate review required.",
   "incidentId": "INC$(date -u +%s)",
-  "ownerGroup": "DnA Production Support",
+  "ownerGroup": "Production Support",
   "eventTimeUtc": "${NOW_UTC}",
-  "dedupeKey": "ClaimsPipeline:BatchFailure:${SEVERITY}"
+  "dedupeKey": "OrdersPipeline:BatchFailure:${SEVERITY}"
 }
 JSON
 )
@@ -58,7 +58,7 @@ echo "${PAYLOAD}" | jq .
 curl -sS -X POST "${URI}" \
   -H "Authorization: ${SAS}" \
   -H "Content-Type: application/atom+xml;type=entry;charset=utf-8" \
-  -H "BrokerProperties: {\"PartitionKey\":\"ClaimsPipeline\"}" \
+  -H "BrokerProperties: {\"PartitionKey\":\"OrdersPipeline\"}" \
   --data "${PAYLOAD}" \
   --fail-with-body
 

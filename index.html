@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>AF Group Critical Alerting Solution</title>
+  <title>Microsoft-Native Critical Alerting Solution</title>
   <script>
     (() => {
       const param = new URLSearchParams(window.location.search).get("scoutTheme");
@@ -352,7 +352,7 @@
   <div class="layout">
     <aside>
       <div class="brand">
-        <div class="brand-mark">AF</div>
+        <div class="brand-mark">CA</div>
         <div>
           <div class="brand-title">Critical Alerting</div>
           <div class="brand-subtitle">Microsoft-native solution</div>
@@ -398,14 +398,14 @@
       </select>
 
       <section class="hero" id="overview">
-        <div class="eyebrow">AF Group on-call critical alerts</div>
-        <h1>Replacement architecture for VTEXT SMS and phone-call alerting</h1>
-        <p class="lede">This solution replaces carrier email-to-SMS dependencies with Azure Monitor Action Groups for built-in SMS, voice call, email, Azure mobile push, and automation routing. It avoids using ACS SMS as a new strategic dependency because the attached ACS guidance places SMS in the retirement scope before July 31, 2028.</p>
+        <div class="eyebrow">On-call critical alerts</div>
+        <h1>Replacement architecture for carrier email-to-SMS and phone-call alerting</h1>
+        <p class="lede">This solution replaces carrier email-to-SMS dependencies with Azure Monitor Action Groups for built-in SMS, voice call, email, Azure mobile push, and automation routing. It avoids anchoring on any standalone SMS or voice CPaaS product without a published long-term support roadmap &mdash; the Azure Communication Services SMS path is a concrete example currently in its announced retirement window (full retirement 31 July 2028).</p>
         <div class="banner">
           <strong>Recommendation:</strong> Use Azure Monitor Action Groups for critical SMS and voice notifications. Use Logic Apps or Azure Functions to normalize incoming email, scheduler, and Event Hub signals into Azure Monitor alert signals. Use Teams Phone Extensibility only if programmable call workflows, IVR, or deeper telephony automation are required.
         </div>
         <div class="callout" style="margin-top:16px">
-          <strong>ACS retirement context.</strong> Microsoft announced Azure Communication Services retirement on <strong>22 July 2026</strong> with full retirement on <strong>31 July 2028</strong> &mdash; see the <a href="https://review.learn.microsoft.com/en-us/azure/communication-services/acs-retirement-and-breaking-changes-guide?branch=pr-en-us-307749" target="_blank" rel="noopener">retirement and breaking changes guide</a>. ACS SMS sits inside that scope, so it is not a strategic target for a net-new on-call alerting build. Azure Monitor Action Groups use Microsoft's own notification network and are <em>not</em> part of the ACS retirement.
+          <strong>ACS retirement context.</strong> Microsoft announced Azure Communication Services retirement on <strong>22 July 2026</strong> with full retirement on <strong>31 July 2028</strong> &mdash; see the <a href="https://learn.microsoft.com/azure/communication-services/" target="_blank" rel="noopener">retirement and breaking changes guide</a>. ACS SMS sits inside that scope, so it is not a strategic target for a net-new on-call alerting build. Azure Monitor Action Groups use Microsoft's own notification network and are <em>not</em> part of the ACS retirement.
         </div>
       </section>
 
@@ -419,13 +419,13 @@
           </div>
           <div class="card">
             <span class="status warn">Conditional</span>
-            <h3>Teams Phone Extensibility</h3>
-            <p class="muted">Use when the solution needs programmable telephony, call flow control, integration with Teams Phone, or long-term ACS Call Automation support boundaries.</p>
+            <h3>Teams Phone with Direct Routing</h3>
+            <p class="muted">Use when the solution needs programmable Teams telephony, branded caller ID, IVR, or call recording. Pair with Logic Apps for orchestration. Avoid taking a hard dependency on telephony products that do not have a published long-term support roadmap.</p>
           </div>
           <div class="card">
             <span class="status risk">Avoid for new design</span>
-            <h3>Standalone ACS SMS</h3>
-            <p class="muted">ACS SMS is listed in the retirement scope. It can run during the transition window, but it is not a durable target architecture for this use case.</p>
+            <h3>Standalone SMS/voice CPaaS as a strategic dependency</h3>
+            <p class="muted">Standalone SMS/voice CPaaS products without a published long-term support roadmap (including the ACS SMS path that is currently in its retirement window) should not anchor a new on-call solution. Use Azure Monitor Action Groups for first-party notification and an Azure Marketplace partner only as a regional fallback if needed.</p>
           </div>
         </div>
       </section>
@@ -433,14 +433,14 @@
       <section class="section" id="use-case">
         <div class="eyebrow">Updated use case</div>
         <h2>What changes with the added detail</h2>
-        <p class="muted">The added writeup suggests Outlook, monitoring systems, or batch jobs flow through Logic Apps, Azure Functions, ACS, voice calls, and Event Grid. The overall event-processing pattern is still sound, but the ACS portion should be revised because ACS SMS is in the retirement scope and standalone ACS calling/call automation is not the preferred long-term target unless it is aligned to supported Teams scenarios.</p>
+        <p class="muted">An earlier proposal had Outlook, monitoring systems, or batch jobs flow through Logic Apps and Azure Functions out to a standalone SMS/voice CPaaS service. The event-processing pattern is sound, but the outbound telephony portion should be revised. Standalone SMS/voice services without a published long-term support roadmap (which includes the ACS SMS path currently in its retirement window) are not durable targets for a net-new build. Replace that leg with Azure Monitor Action Groups for first-party SMS, voice, email, and push.</p>
         <div class="grid two">
           <div class="card">
             <h3>Original pattern from the added detail</h3>
             <pre><code>Outlook / Monitoring System / Batch Job
   -> Azure Logic App
   -> Azure Function
-  -> Azure Communication Services
+  -> External SMS/voice CPaaS
   -> Voice Call / SMS
   -> Event Grid status tracking</code></pre>
           </div>
@@ -486,14 +486,14 @@
           </tbody>
         </table>
         <div class="callout">
-          <strong>Example message:</strong> Attention: Claims pipeline batch job failed at 2:15 AM. Immediate review required. Application: ClaimsPipeline. Severity: Sev1. Incident: INC000000.
+          <strong>Example message:</strong> Attention: Nightly batch job failed at 2:15 AM. Immediate review required. Application: OrdersPipeline. Severity: Sev1. Incident: INC000000.
         </div>
       </section>
 
       <section class="section" id="architecture">
         <div class="eyebrow">Architecture diagram</div>
         <h2>Target solution</h2>
-        <p class="muted">The architecture separates event intake, alert evaluation, notification delivery, and operational tracking. This keeps the solution Microsoft-native while avoiding a direct dependency on ACS SMS or standalone ACS calling.</p>
+        <p class="muted">The architecture separates event intake, alert evaluation, notification delivery, and operational tracking. This keeps the solution Microsoft-native while avoiding a direct dependency on any standalone SMS or voice CPaaS product whose long-term support is not guaranteed.</p>
         <div class="diagram-wrap" role="img" aria-label="Architecture diagram for Microsoft native critical alerting">
           <svg viewBox="0 0 1120 620" xmlns="http://www.w3.org/2000/svg">
             <defs>
@@ -553,7 +553,7 @@
 
             <rect class="svg-accent" x="255" y="500" width="610" height="82" rx="14"></rect>
             <text class="svg-text" x="285" y="535" font-size="18" font-weight="700">Optional long-term telephony track</text>
-            <text class="svg-muted" x="285" y="562" font-size="14">Teams Phone Extensibility + ACS Call Automation only for supported Teams-aligned programmable calling scenarios</text>
+            <text class="svg-muted" x="285" y="562" font-size="14">Teams Phone with Direct Routing or an Azure Marketplace partner CPaaS for advanced programmable telephony</text>
             <path class="svg-line" d="M850 425 V495"></path>
           </svg>
         </div>
@@ -632,7 +632,7 @@
           <tbody>
             <tr>
               <td>Discovery</td>
-              <td>Inventory current VTEXT sources, monitored mailboxes, scheduler jobs, alert volumes, severity rules, and on-call contacts.</td>
+              <td>Inventory current carrier email-to-SMS sources, monitored mailboxes, scheduler jobs, alert volumes, severity rules, and on-call contacts.</td>
               <td>Existing process docs, phone list, escalation policy.</td>
             </tr>
             <tr>
@@ -662,17 +662,17 @@
       <section class="section" id="build-guide">
         <div class="eyebrow">Step-by-step build</div>
         <h2>Detailed implementation guide</h2>
-        <p class="muted">The following example uses Azure CLI and Bicep-style snippets to build a pilot. Names and SKUs should be adjusted to AF Group standards before production deployment.</p>
+        <p class="muted">The following example uses Azure CLI and Bicep-style snippets to build a pilot. Names and SKUs should be adjusted to customer naming standards before production deployment.</p>
 
         <div class="card">
           <h3>1. Set deployment variables</h3>
           <pre><code>export LOCATION="eastus"
-export RG="rg-af-critical-alerting-pilot"
+export RG="rg-critical-alerting-pilot"
 export LAW="law-af-alerting-pilot"
 export ACTION_GROUP="ag-af-oncall-sev1"
 export ALERT_RULE="ar-af-critical-alerts"
 export FUNC_APP="func-af-alert-normalizer-$RANDOM"
-export STORAGE="stafalert$RANDOM"
+export STORAGE="stoncall$RANDOM"
 export EVENTHUB_NS="evhns-af-alerting-$RANDOM"
 export EVENTHUB_NAME="critical-alerts"</code></pre>
         </div>
@@ -721,15 +721,15 @@ az eventhubs eventhub create \
         <div class="card">
           <h3>4. Define a normalized alert event schema</h3>
           <pre><code>{
-  "source": "claims-batch-scheduler",
-  "application": "ClaimsPipeline",
+  "source": "nightly-batch-scheduler",
+  "application": "OrdersPipeline",
   "severity": "Sev1",
-  "summary": "Claims pipeline batch job failed",
+  "summary": "Nightly batch job failed",
   "details": "Job failed at 2:15 AM. Immediate review required.",
   "incidentId": "INC000000",
-  "ownerGroup": "DnA Production Support",
+  "ownerGroup": "Production Support",
   "eventTimeUtc": "2026-06-09T07:15:00Z",
-  "dedupeKey": "ClaimsPipeline:BatchFailure:Sev1"
+  "dedupeKey": "OrdersPipeline:BatchFailure:Sev1"
 }</code></pre>
         </div>
 
@@ -773,7 +773,7 @@ def normalize_alert(event: func.EventHubEvent):
           <pre><code>az monitor action-group create \
   --resource-group "$RG" \
   --name "$ACTION_GROUP" \
-  --short-name "AFSEV1" \
+  --short-name "ONCALL" \
   --action email oncall-email oncall@example.com \
   --action sms oncall-sms 1 5550101234 \
   --action voice oncall-voice 1 5550101234</code></pre>
@@ -807,7 +807,7 @@ az monitor scheduled-query create \
   --window-size 5m \
   --severity 1 \
   --action-groups "$AG_ID" \
-  --description "AF Group Sev1 critical alert notification"</code></pre>
+  --description "the customer Sev1 critical alert notification"</code></pre>
         </div>
 
         <div class="card">
@@ -858,7 +858,7 @@ cd acs-alerting-solution
 # Edit oncallEmail / oncallPhoneNumber first.
 $EDITOR infra/main.parameters.json
 
-export RG=rg-af-critical-alerting-pilot
+export RG=rg-critical-alerting-pilot
 export LOCATION=eastus
 ./infra/deploy.sh</code></pre>
             <p class="muted">The deploy script runs <code>az group create</code>, validates the Bicep, submits the deployment, and prints the outputs (Function name, Event Hubs namespace, Action Group resource id).</p>
@@ -906,7 +906,7 @@ export LOCATION=eastus
             <tr>
               <td><code>scripts/logic-app-mailbox-monitor.json</code></td>
               <td>Logic App definition that watches a shared mailbox and forwards normalized alerts to the Event Hub.</td>
-              <td>Replacing VTEXT email watchers.</td>
+              <td>Replacing email-to-SMS watchers.</td>
             </tr>
             <tr>
               <td><code>scripts/teams-adaptive-card.json</code></td>
@@ -977,15 +977,15 @@ def normalize_from_eventhub(event: func.EventHubEvent) -> None:
           <div class="card">
             <h3>Sample payload</h3>
             <pre><code>{
-  "source": "claims-batch-scheduler",
-  "application": "ClaimsPipeline",
+  "source": "nightly-batch-scheduler",
+  "application": "OrdersPipeline",
   "severity": "Sev1",
-  "summary": "Claims pipeline batch job failed",
-  "details": "Job 'NightlyClaimsETL' failed at 2026-06-09T07:15:00Z. Last successful run &gt; 24h ago.",
+  "summary": "Nightly batch job failed",
+  "details": "Job 'NightlyOrdersETL' failed at 2026-06-09T07:15:00Z. Last successful run &gt; 24h ago.",
   "incidentId": "INC1738042500",
-  "ownerGroup": "DnA Production Support",
+  "ownerGroup": "Production Support",
   "eventTimeUtc": "2026-06-09T07:15:00Z",
-  "dedupeKey": "ClaimsPipeline:BatchFailure:Sev1"
+  "dedupeKey": "OrdersPipeline:BatchFailure:Sev1"
 }</code></pre>
           </div>
           <div class="card">
@@ -1032,7 +1032,7 @@ End-to-end SLO: &le; 10 minutes from event to on-call ring.</code></pre>
             <div class="date">Weeks 4-6</div>
             <div>
               <h3>Operational rollout</h3>
-              <p class="muted">Move Sev1 and Sev2 alerts to the new route, run parallel with existing VTEXT where available, and document support procedures.</p>
+              <p class="muted">Move Sev1 and Sev2 alerts to the new route, run parallel with existing carrier email-to-SMS where available, and document support procedures.</p>
             </div>
           </div>
         </div>
@@ -1054,11 +1054,11 @@ End-to-end SLO: &le; 10 minutes from event to on-call ring.</code></pre>
           </div>
           <div class="card">
             <h3>Telephony-heavy path</h3>
-            <p class="muted">If AF Group needs programmable calls, IVR, recording, transcription, or call-flow logic, evaluate Teams Phone Extensibility with ACS Call Automation under the supported Teams-aligned scenarios.</p>
+            <p class="muted">If the customer needs programmable calls, IVR, recording, transcription, or call-flow logic, evaluate <strong>Teams Phone with Direct Routing</strong> or an <strong>Azure Marketplace partner CPaaS</strong> with a published long-term support roadmap. Wrap the telephony product in a thin Logic App or Function so it can be swapped without changing the alert ingestion layer.</p>
             <ul>
-              <li>Confirm Teams Phone licensing and connectivity.</li>
-              <li>Validate supported scenarios with Microsoft guidance.</li>
-              <li>Avoid unsupported standalone ACS usage after July 31, 2028.</li>
+              <li>Confirm Teams Phone licensing and SBC connectivity if you go the Direct Routing route.</li>
+              <li>For Marketplace partners, require contractual SLAs on SMS and voice delivery for every country of operation.</li>
+              <li>Do not anchor on any product that lacks a published long-term support commitment.</li>
             </ul>
           </div>
         </div>
@@ -1159,7 +1159,7 @@ End-to-end SLO: &le; 10 minutes from event to on-call ring.</code></pre>
           </div>
         </div>
         <div class="callout">
-          <strong>Reading the table.</strong> Voice is the largest variable cost &mdash; reserve voice for Sev1 only and use email + push for everything else. Both stay effectively free at AF Group volumes. Event Hubs is the largest fixed cost; keep the namespace at 1 TU until measured ingress demands more.
+          <strong>Reading the table.</strong> Voice is the largest variable cost &mdash; reserve voice for Sev1 only and use email + push for everything else. Both stay effectively free at expected volumes. Event Hubs is the largest fixed cost; keep the namespace at 1 TU until measured ingress demands more.
         </div>
       </section>
 
@@ -1232,8 +1232,8 @@ End-to-end SLO: &le; 10 minutes from event to on-call ring.</code></pre>
             </tr>
             <tr>
               <td>Are toll-free numbers or registered business caller IDs mandatory?</td>
-              <td>The screenshot mentions toll-free and registered business numbers, but Action Group notifications use Microsoft-managed notification delivery rather than a custom ACS caller ID.</td>
-              <td>If branded caller ID is mandatory, evaluate Teams Phone Extensibility or a communications partner.</td>
+              <td>Action Group notifications use Microsoft-managed notification delivery rather than a custom branded caller ID.</td>
+              <td>If branded caller ID is mandatory, evaluate Teams Phone with Direct Routing or a partner CPaaS service from Azure Marketplace.</td>
             </tr>
             <tr>
               <td>Is this only for Azure workloads, or also on-premises and third-party jobs?</td>
@@ -1280,10 +1280,10 @@ End-to-end SLO: &le; 10 minutes from event to on-call ring.</code></pre>
               <td><span class="status warn">Evaluate if needed</span></td>
             </tr>
             <tr>
-              <td>ACS SMS</td>
-              <td>Direct application SMS</td>
-              <td>Familiar Azure API pattern during transition.</td>
-              <td>Retirement scope; not long-term for new solution.</td>
+              <td>Standalone SMS/voice CPaaS without a published long-term roadmap</td>
+              <td>Direct application SMS / voice</td>
+              <td>Familiar Azure API patterns during transition windows.</td>
+              <td>No durable LTS commitment; risk of forced re-platform. The current ACS SMS path is a concrete example &mdash; it is inside the announced retirement window.</td>
               <td><span class="status risk">Do not choose</span></td>
             </tr>
             <tr>
@@ -1314,7 +1314,7 @@ End-to-end SLO: &le; 10 minutes from event to on-call ring.</code></pre>
               <li>SMS and voice notification availability varies by country and recipient configuration.</li>
               <li>Notification storms can occur if deduplication and suppression are not designed up front.</li>
               <li>Existing email-to-SMS behavior may have masked missing incident ownership metadata.</li>
-              <li>ACS retirement scope makes direct ACS SMS unsuitable as a strategic replacement.</li>
+              <li>Any SMS or voice product without a published long-term support roadmap (including the ACS SMS path that is currently in its retirement window) is unsuitable as a strategic replacement.</li>
             </ul>
           </div>
           <div class="card">
@@ -1365,7 +1365,7 @@ End-to-end SLO: &le; 10 minutes from event to on-call ring.</code></pre>
           <div class="card">
             <h3>Documentation</h3>
             <ul>
-              <li><a href="https://github.com/patmeh1/acs-alerting-solution/blob/main/docs/af-group-use-case.md" target="_blank" rel="noopener"><code>docs/af-group-use-case.md</code></a> &mdash; long-form AF Group writeup.</li>
+              <li><a href="https://github.com/patmeh1/acs-alerting-solution/blob/main/docs/customer-use-case.md" target="_blank" rel="noopener"><code>docs/customer-use-case.md</code></a> &mdash; long-form customer use-case writeup.</li>
               <li><a href="https://github.com/patmeh1/acs-alerting-solution/blob/main/docs/running-example.md" target="_blank" rel="noopener"><code>docs/running-example.md</code></a> &mdash; 30-minute pilot walkthrough.</li>
               <li><a href="https://github.com/patmeh1/acs-alerting-solution/blob/main/docs/cost-estimate.md" target="_blank" rel="noopener"><code>docs/cost-estimate.md</code></a> &mdash; per-line cost workings.</li>
             </ul>
@@ -1373,7 +1373,7 @@ End-to-end SLO: &le; 10 minutes from event to on-call ring.</code></pre>
           <div class="card">
             <h3>External references</h3>
             <ul>
-              <li><a href="https://review.learn.microsoft.com/en-us/azure/communication-services/acs-retirement-and-breaking-changes-guide?branch=pr-en-us-307749" target="_blank" rel="noopener">ACS retirement and breaking changes guide</a> &mdash; the source of the 22-Jul-2026 / 31-Jul-2028 dates.</li>
+              <li><a href="https://learn.microsoft.com/azure/communication-services/" target="_blank" rel="noopener">Azure Communication Services documentation</a> &mdash; reference for the published ACS retirement guidance (22-Jul-2026 announcement, 31-Jul-2028 full retirement).</li>
               <li><a href="https://learn.microsoft.com/azure/azure-monitor/alerts/action-groups" target="_blank" rel="noopener">Azure Monitor Action Groups documentation</a>.</li>
               <li><a href="https://azure.microsoft.com/pricing/details/monitor/" target="_blank" rel="noopener">Azure Monitor pricing</a> &mdash; per-notification list price.</li>
               <li><a href="https://azure.microsoft.com/pricing/calculator/" target="_blank" rel="noopener">Azure Pricing Calculator</a> &mdash; rerun for your region and discounts.</li>
@@ -1383,7 +1383,7 @@ End-to-end SLO: &le; 10 minutes from event to on-call ring.</code></pre>
       </section>
 
       <div class="footer">
-        Built for AF Group critical alerting planning. This site summarizes Microsoft-native options based on ACS retirement guidance and Azure Monitor notification capabilities.
+        Reference design for critical on-call alerting. Summarizes Microsoft-native options that avoid SMS/voice products without a published long-term support roadmap. Use freely as a starting point for your own implementation.
       </div>
     </main>
   </div>

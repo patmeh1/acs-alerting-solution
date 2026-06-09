@@ -4,8 +4,8 @@
 # every recipient and country code before connecting real signal sources.
 set -euo pipefail
 
-RG="${RG:-rg-af-critical-alerting-pilot}"
-AG_NAME="${AG_NAME:-afalert-ag-sev1}"
+RG="${RG:-rg-critical-alerting-pilot}"
+AG_NAME="${AG_NAME:-oncall-ag-sev1}"
 RECEIVERS=("${@:-Email Sms Voice AzureAppPush}")
 
 AG_ID=$(az monitor action-group show -g "${RG}" -n "${AG_NAME}" --query id -o tsv)
@@ -20,9 +20,9 @@ for r in "${RECEIVERS[@]}"; do
     --method post \
     --uri "https://management.azure.com${AG_ID}/createNotifications?api-version=2024-10-01-preview" \
     --body "$(jq -nc \
-      --arg note 'AF Group critical alerting pilot test - please ignore.' \
+      --arg note 'critical alerting pilot test - please ignore.' \
       --arg r "${r}" \
-      '{alertType:"servicehealth", notificationName:"afalert-pilot-test", receivers:[{name:("test-"+($r|ascii_downcase)), receiverType:$r}], properties:{note:$note}}'
+      '{alertType:"servicehealth", notificationName:"oncall-pilot-test", receivers:[{name:("test-"+($r|ascii_downcase)), receiverType:$r}], properties:{note:$note}}'
     )" \
     --output jsonc
   sleep 2

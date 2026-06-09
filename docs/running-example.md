@@ -32,7 +32,7 @@ Set at minimum:
 ## 2. Deploy the infrastructure
 
 ```bash
-export RG=rg-af-critical-alerting-pilot
+export RG=rg-critical-alerting-pilot
 export LOCATION=eastus
 
 # Wraps az group create + az deployment group create.
@@ -117,12 +117,12 @@ so costs more per rule and is unnecessary for production volumes.
 az functionapp log tail -g "$RG" -n "$FUNC_NAME"
 
 # Confirm the alert rule fired.
-az monitor scheduled-query show -g "$RG" -n afalert-ar-sev1-critical \
+az monitor scheduled-query show -g "$RG" -n oncall-ar-sev1-critical \
   --query "lastUpdatedTime"
 
 # Confirm the action group ran.
 az monitor activity-log list \
-  --resource-id "$(az monitor action-group show -g "$RG" -n afalert-ag-sev1 --query id -o tsv)" \
+  --resource-id "$(az monitor action-group show -g "$RG" -n oncall-ag-sev1 --query id -o tsv)" \
   --offset 1h --query "[?operationName.value=='Microsoft.Insights/actionGroups/Notifications/action'].{time:eventTimestamp, status:status.value}" \
   -o table
 ```
