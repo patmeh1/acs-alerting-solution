@@ -1,0 +1,835 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AF Group Critical Alerting Solution</title>
+  <script>
+    (() => {
+      const param = new URLSearchParams(window.location.search).get("scoutTheme");
+      const theme =
+        param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
+  <style>
+    :root {
+      color-scheme: light;
+      --cp-bg: #f7f4ef;
+      --cp-bg-elevated: #fcfbf8;
+      --cp-surface: #ffffff;
+      --cp-surface-soft: #f5f5f5;
+      --cp-border: #dedede;
+      --cp-border-strong: #919191;
+      --cp-text: #242424;
+      --cp-text-muted: #5c5c5c;
+      --cp-text-soft: #6f6f6f;
+      --cp-accent: #b11f4b;
+      --cp-accent-hover: #9a1a41;
+      --cp-accent-soft: rgba(177, 31, 75, 0.08);
+      --cp-accent-fg: #ffffff;
+      --cp-success: #16a34a;
+      --cp-danger: #dc2626;
+      --cp-warning: #f59e0b;
+      --cp-link: #0078d4;
+      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+      --cp-overlay: rgba(255, 255, 255, 0.8);
+      --cp-panel: rgba(255, 255, 255, 0.86);
+      --cp-panel-strong: rgba(255, 255, 255, 0.96);
+      --cp-sheen: rgba(255, 255, 255, 0.55);
+      --cp-highlight: rgba(177, 31, 75, 0.12);
+    }
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --cp-bg: #3d3b3a;
+      --cp-bg-elevated: #343231;
+      --cp-surface: #292929;
+      --cp-surface-soft: #2e2e2e;
+      --cp-border: #474747;
+      --cp-border-strong: #5f5f5f;
+      --cp-text: #dedede;
+      --cp-text-muted: #919191;
+      --cp-text-soft: #b0b0b0;
+      --cp-accent: #fd8ea1;
+      --cp-accent-hover: #fb7b91;
+      --cp-accent-soft: rgba(253, 142, 161, 0.14);
+      --cp-accent-fg: #1a1a1a;
+      --cp-success: #4ade80;
+      --cp-danger: #f87171;
+      --cp-warning: #fbbf24;
+      --cp-link: #4da6ff;
+      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+      --cp-overlay: rgba(41, 41, 41, 0.88);
+      --cp-panel: rgba(41, 41, 41, 0.72);
+      --cp-panel-strong: rgba(41, 41, 41, 0.96);
+      --cp-sheen: rgba(255, 255, 255, 0.04);
+      --cp-highlight: rgba(253, 142, 161, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--cp-bg);
+      color: var(--cp-text);
+      font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.55;
+    }
+    a { color: var(--cp-link); }
+    .layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      min-height: 100vh;
+    }
+    aside {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 24px;
+      background: var(--cp-bg-elevated);
+      border-right: 1px solid var(--cp-border);
+      overflow: auto;
+    }
+    main {
+      padding: 32px;
+      max-width: 1280px;
+      width: 100%;
+    }
+    .brand {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    .brand-mark {
+      width: 40px;
+      height: 40px;
+      border-radius: 0.625rem;
+      background: var(--cp-accent);
+      color: var(--cp-accent-fg);
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+    }
+    .brand-title {
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+    .brand-subtitle {
+      color: var(--cp-text-muted);
+      font-size: 12px;
+    }
+    nav {
+      display: grid;
+      gap: 8px;
+    }
+    nav a {
+      display: block;
+      padding: 10px 12px;
+      border-radius: 0.625rem;
+      color: var(--cp-text);
+      text-decoration: none;
+      border: 1px solid transparent;
+    }
+    nav a:hover, nav a.active {
+      background: var(--cp-accent-soft);
+      border-color: var(--cp-border);
+      color: var(--cp-accent);
+    }
+    .hero {
+      padding: 32px;
+      border-radius: 16px;
+      background: var(--cp-panel-strong);
+      border: 1px solid var(--cp-border);
+      box-shadow: 0 0 2px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.14);
+      margin-bottom: 24px;
+    }
+    .eyebrow {
+      color: var(--cp-accent);
+      font-weight: 700;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      font-size: 12px;
+    }
+    h1 {
+      font-size: clamp(32px, 5vw, 56px);
+      line-height: 1.05;
+      margin: 8px 0 16px;
+    }
+    h2 {
+      font-size: clamp(24px, 3vw, 34px);
+      margin: 0 0 16px;
+    }
+    h3 {
+      margin: 0 0 8px;
+      font-size: 18px;
+    }
+    p { margin: 0 0 14px; }
+    .lede {
+      max-width: 920px;
+      color: var(--cp-text-muted);
+      font-size: 18px;
+    }
+    .banner {
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: 0.625rem;
+      background: var(--cp-accent-soft);
+      border: 1px solid var(--cp-border);
+    }
+    .grid {
+      display: grid;
+      gap: 16px;
+    }
+    .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .card {
+      background: var(--cp-surface);
+      border: 1px solid var(--cp-border);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 0 2px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.14);
+    }
+    .section {
+      margin: 24px 0;
+      padding: 28px;
+      border-radius: 16px;
+      background: var(--cp-panel);
+      border: 1px solid var(--cp-border);
+    }
+    .muted { color: var(--cp-text-muted); }
+    .soft { color: var(--cp-text-soft); }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border: 1px solid var(--cp-border);
+      border-radius: 0.625rem;
+      background: var(--cp-surface-soft);
+      color: var(--cp-text-muted);
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .status {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 0.625rem;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid var(--cp-border);
+    }
+    .status.good { color: var(--cp-success); }
+    .status.warn { color: var(--cp-warning); }
+    .status.risk { color: var(--cp-danger); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 0.625rem;
+      border: 1px solid var(--cp-border);
+      background: var(--cp-surface);
+    }
+    th, td {
+      text-align: left;
+      vertical-align: top;
+      padding: 12px;
+      border-bottom: 1px solid var(--cp-border);
+    }
+    th {
+      background: var(--cp-surface-soft);
+      color: var(--cp-text);
+      font-size: 13px;
+    }
+    tr:last-child td { border-bottom: 0; }
+    code, pre {
+      font-family: Consolas, "Courier New", Courier, monospace;
+    }
+    pre {
+      padding: 16px;
+      border-radius: 0.625rem;
+      overflow: auto;
+      background: var(--cp-surface-soft);
+      border: 1px solid var(--cp-border);
+    }
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(120px, 1fr));
+      gap: 12px;
+      align-items: stretch;
+      margin: 20px 0;
+    }
+    .flow-step {
+      position: relative;
+      padding: 16px;
+      border-radius: 16px;
+      background: var(--cp-surface);
+      border: 1px solid var(--cp-border);
+      min-height: 120px;
+    }
+    .flow-step:not(:last-child)::after {
+      content: ">";
+      position: absolute;
+      right: -12px;
+      top: 42%;
+      color: var(--cp-accent);
+      font-weight: 700;
+    }
+    .diagram-wrap {
+      background: var(--cp-surface);
+      border: 1px solid var(--cp-border);
+      border-radius: 16px;
+      padding: 16px;
+      overflow: auto;
+    }
+    svg {
+      max-width: 100%;
+      min-width: 900px;
+      height: auto;
+      color: var(--cp-text);
+    }
+    .svg-card { fill: var(--cp-surface-soft); stroke: var(--cp-border-strong); }
+    .svg-accent { fill: var(--cp-accent-soft); stroke: var(--cp-accent); }
+    .svg-text { fill: var(--cp-text); font-family: "Segoe UI", Aptos, Calibri, sans-serif; }
+    .svg-muted { fill: var(--cp-text-muted); font-family: "Segoe UI", Aptos, Calibri, sans-serif; }
+    .svg-line { stroke: var(--cp-accent); stroke-width: 2; fill: none; marker-end: url(#arrow); }
+    .timeline {
+      position: relative;
+      display: grid;
+      gap: 14px;
+    }
+    .timeline-item {
+      display: grid;
+      grid-template-columns: 150px 1fr;
+      gap: 16px;
+      padding: 16px;
+      border: 1px solid var(--cp-border);
+      border-radius: 16px;
+      background: var(--cp-surface);
+    }
+    .date {
+      color: var(--cp-accent);
+      font-weight: 800;
+    }
+    .callout {
+      border-left: 4px solid var(--cp-accent);
+      padding: 14px 16px;
+      background: var(--cp-accent-soft);
+      border-radius: 0.625rem;
+    }
+    ul, ol { margin-top: 8px; padding-left: 22px; }
+    li { margin: 6px 0; }
+    .footer {
+      margin: 32px 0 8px;
+      color: var(--cp-text-muted);
+      font-size: 13px;
+    }
+    .mobile-nav {
+      display: none;
+      margin-bottom: 16px;
+      width: 100%;
+      padding: 12px;
+      border-radius: 0.625rem;
+      border: 1px solid var(--cp-border);
+      background: var(--cp-surface);
+      color: var(--cp-text);
+      font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    @media (max-width: 980px) {
+      .layout { display: block; }
+      aside { display: none; }
+      main { padding: 16px; }
+      .mobile-nav { display: block; }
+      .grid.two, .grid.three { grid-template-columns: 1fr; }
+      .flow { grid-template-columns: 1fr; }
+      .flow-step:not(:last-child)::after { display: none; }
+      .timeline-item { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside>
+      <div class="brand">
+        <div class="brand-mark">AF</div>
+        <div>
+          <div class="brand-title">Critical Alerting</div>
+          <div class="brand-subtitle">Microsoft-native solution</div>
+        </div>
+      </div>
+      <nav id="sideNav">
+        <a href="#overview">Overview</a>
+        <a href="#architecture">Architecture diagram</a>
+        <a href="#implementation">Implementation</a>
+        <a href="#short-term">Short-term plan</a>
+        <a href="#long-term">Long-term plan</a>
+        <a href="#cost">Cost model</a>
+        <a href="#requirements">Requirements</a>
+        <a href="#options">Other options</a>
+        <a href="#risks">Risks and decisions</a>
+      </nav>
+    </aside>
+    <main>
+      <select class="mobile-nav" id="mobileNav" aria-label="Navigate sections">
+        <option value="#overview">Overview</option>
+        <option value="#architecture">Architecture diagram</option>
+        <option value="#implementation">Implementation</option>
+        <option value="#short-term">Short-term plan</option>
+        <option value="#long-term">Long-term plan</option>
+        <option value="#cost">Cost model</option>
+        <option value="#requirements">Requirements</option>
+        <option value="#options">Other options</option>
+        <option value="#risks">Risks and decisions</option>
+      </select>
+
+      <section class="hero" id="overview">
+        <div class="eyebrow">AF Group on-call critical alerts</div>
+        <h1>Replacement architecture for VTEXT SMS and phone-call alerting</h1>
+        <p class="lede">This solution replaces carrier email-to-SMS dependencies with Azure Monitor Action Groups for built-in SMS, voice call, email, Azure mobile push, and automation routing. It avoids using ACS SMS as a new strategic dependency because the attached ACS guidance places SMS in the retirement scope before July 31, 2028.</p>
+        <div class="banner">
+          <strong>Recommendation:</strong> Use Azure Monitor Action Groups for critical SMS and voice notifications. Use Logic Apps or Azure Functions to normalize incoming email, scheduler, and Event Hub signals into Azure Monitor alert signals. Use Teams Phone Extensibility only if programmable call workflows, IVR, or deeper telephony automation are required.
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Executive decision summary</h2>
+        <div class="grid three">
+          <div class="card">
+            <span class="status good">Recommended</span>
+            <h3>Azure Monitor Action Groups</h3>
+            <p class="muted">Best fit for simple critical alert to SMS and phone call. It is built into Azure Monitor and supports multiple notification channels plus automation actions.</p>
+          </div>
+          <div class="card">
+            <span class="status warn">Conditional</span>
+            <h3>Teams Phone Extensibility</h3>
+            <p class="muted">Use when the solution needs programmable telephony, call flow control, integration with Teams Phone, or long-term ACS Call Automation support boundaries.</p>
+          </div>
+          <div class="card">
+            <span class="status risk">Avoid for new design</span>
+            <h3>Standalone ACS SMS</h3>
+            <p class="muted">ACS SMS is listed in the retirement scope. It can run during the transition window, but it is not a durable target architecture for this use case.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="architecture">
+        <div class="eyebrow">Architecture diagram</div>
+        <h2>Target solution</h2>
+        <p class="muted">The architecture separates event intake, alert evaluation, notification delivery, and operational tracking. This keeps the solution Microsoft-native while avoiding a direct dependency on ACS SMS or standalone ACS calling.</p>
+        <div class="diagram-wrap" role="img" aria-label="Architecture diagram for Microsoft native critical alerting">
+          <svg viewBox="0 0 1120 620" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+                <path d="M0,0 L0,6 L9,3 z" fill="currentColor"></path>
+              </marker>
+            </defs>
+            <rect class="svg-card" x="25" y="40" width="220" height="145" rx="14"></rect>
+            <text class="svg-text" x="45" y="75" font-size="18" font-weight="700">Alert sources</text>
+            <text class="svg-muted" x="45" y="105" font-size="14">Mailbox / monitored email</text>
+            <text class="svg-muted" x="45" y="130" font-size="14">Scheduler jobs</text>
+            <text class="svg-muted" x="45" y="155" font-size="14">App events / Event Hubs</text>
+
+            <rect class="svg-accent" x="320" y="40" width="220" height="145" rx="14"></rect>
+            <text class="svg-text" x="340" y="75" font-size="18" font-weight="700">Ingestion layer</text>
+            <text class="svg-muted" x="340" y="105" font-size="14">Logic Apps</text>
+            <text class="svg-muted" x="340" y="130" font-size="14">Azure Functions</text>
+            <text class="svg-muted" x="340" y="155" font-size="14">Validation and enrichment</text>
+
+            <rect class="svg-card" x="615" y="40" width="220" height="145" rx="14"></rect>
+            <text class="svg-text" x="635" y="75" font-size="18" font-weight="700">Alert signal</text>
+            <text class="svg-muted" x="635" y="105" font-size="14">Log Analytics via DCR</text>
+            <text class="svg-muted" x="635" y="130" font-size="14">Application Insights event</text>
+            <text class="svg-muted" x="635" y="155" font-size="14">Metric or scheduled query</text>
+
+            <rect class="svg-accent" x="895" y="40" width="200" height="145" rx="14"></rect>
+            <text class="svg-text" x="915" y="75" font-size="18" font-weight="700">Action Group</text>
+            <text class="svg-muted" x="915" y="105" font-size="14">SMS</text>
+            <text class="svg-muted" x="915" y="130" font-size="14">Voice call</text>
+            <text class="svg-muted" x="915" y="155" font-size="14">Email / push</text>
+
+            <path class="svg-line" d="M245 112 H315"></path>
+            <path class="svg-line" d="M540 112 H610"></path>
+            <path class="svg-line" d="M835 112 H890"></path>
+
+            <rect class="svg-card" x="155" y="280" width="230" height="145" rx="14"></rect>
+            <text class="svg-text" x="175" y="315" font-size="18" font-weight="700">Routing rules</text>
+            <text class="svg-muted" x="175" y="345" font-size="14">Severity mapping</text>
+            <text class="svg-muted" x="175" y="370" font-size="14">On-call contact lookup</text>
+            <text class="svg-muted" x="175" y="395" font-size="14">Deduplication window</text>
+
+            <rect class="svg-card" x="445" y="280" width="230" height="145" rx="14"></rect>
+            <text class="svg-text" x="465" y="315" font-size="18" font-weight="700">Operations</text>
+            <text class="svg-muted" x="465" y="345" font-size="14">Incident ticket</text>
+            <text class="svg-muted" x="465" y="370" font-size="14">Audit trail</text>
+            <text class="svg-muted" x="465" y="395" font-size="14">Dashboard</text>
+
+            <rect class="svg-card" x="735" y="280" width="230" height="145" rx="14"></rect>
+            <text class="svg-text" x="755" y="315" font-size="18" font-weight="700">Escalation paths</text>
+            <text class="svg-muted" x="755" y="345" font-size="14">Teams channel</text>
+            <text class="svg-muted" x="755" y="370" font-size="14">ITSM / ServiceNow</text>
+            <text class="svg-muted" x="755" y="395" font-size="14">Manager fallback</text>
+
+            <path class="svg-line" d="M430 185 V250 H270 V275"></path>
+            <path class="svg-line" d="M725 185 V250 H560 V275"></path>
+            <path class="svg-line" d="M995 185 V250 H850 V275"></path>
+
+            <rect class="svg-accent" x="255" y="500" width="610" height="82" rx="14"></rect>
+            <text class="svg-text" x="285" y="535" font-size="18" font-weight="700">Optional long-term telephony track</text>
+            <text class="svg-muted" x="285" y="562" font-size="14">Teams Phone Extensibility + ACS Call Automation only for supported Teams-aligned programmable calling scenarios</text>
+            <path class="svg-line" d="M850 425 V495"></path>
+          </svg>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Page view: end-to-end flow</h2>
+        <div class="flow">
+          <div class="flow-step">
+            <span class="tag">1</span>
+            <h3>Detect</h3>
+            <p class="muted">Monitor production support mailbox, batch scheduler failures, application alerts, and Event Hub messages.</p>
+          </div>
+          <div class="flow-step">
+            <span class="tag">2</span>
+            <h3>Normalize</h3>
+            <p class="muted">Logic App or Function parses source payloads, assigns severity, maps service ownership, and removes duplicate alerts.</p>
+          </div>
+          <div class="flow-step">
+            <span class="tag">3</span>
+            <h3>Evaluate</h3>
+            <p class="muted">Azure Monitor alert rule evaluates custom logs, metrics, or App Insights events and applies alert processing rules.</p>
+          </div>
+          <div class="flow-step">
+            <span class="tag">4</span>
+            <h3>Notify</h3>
+            <p class="muted">Action Group sends SMS, voice call, email, push, and optional webhook or ITSM automation.</p>
+          </div>
+          <div class="flow-step">
+            <span class="tag">5</span>
+            <h3>Track</h3>
+            <p class="muted">Log delivery, acknowledgment, incident ownership, and resolution status for audit and continuous improvement.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="implementation">
+        <div class="eyebrow">Implementation details</div>
+        <h2>Build plan</h2>
+        <div class="grid two">
+          <div class="card">
+            <h3>Core Azure resources</h3>
+            <ul>
+              <li>Resource group for alerting components.</li>
+              <li>Log Analytics workspace with DCR-based custom log ingestion.</li>
+              <li>Azure Monitor scheduled query alerts or metric alerts.</li>
+              <li>Action Groups for each on-call tier or rotation.</li>
+              <li>Logic App Standard or Azure Function for source intake and normalization.</li>
+              <li>Key Vault for secrets if any non-managed identity integration is required.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Alert routing logic</h3>
+            <ul>
+              <li>Map severity to notification channel: Sev1 triggers voice plus SMS; lower severity can use email or Teams.</li>
+              <li>Map application or queue name to owning team and rotation.</li>
+              <li>Apply suppression windows for maintenance.</li>
+              <li>Apply deduplication to prevent notification storms.</li>
+              <li>Emit all routing decisions to Log Analytics for audit.</li>
+            </ul>
+          </div>
+        </div>
+        <pre><code>Source payload -> Normalize -> Write alert_event_CL -> Scheduled query alert -> Action Group -> SMS / voice / email / push</code></pre>
+      </section>
+
+      <section class="section">
+        <h2>Reference implementation backlog</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Workstream</th>
+              <th>Tasks</th>
+              <th>Owner input needed</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Discovery</td>
+              <td>Inventory current VTEXT sources, monitored mailboxes, scheduler jobs, alert volumes, severity rules, and on-call contacts.</td>
+              <td>Existing process docs, phone list, escalation policy.</td>
+            </tr>
+            <tr>
+              <td>Ingestion</td>
+              <td>Create Logic App or Function triggers for email, Event Hub, and scheduler events. Normalize into a common alert event schema.</td>
+              <td>Sample emails and Event Hub payloads.</td>
+            </tr>
+            <tr>
+              <td>Monitoring</td>
+              <td>Create custom logs or App Insights events, scheduled query alerts, and severity-specific alert rules.</td>
+              <td>Criticality thresholds and deduplication windows.</td>
+            </tr>
+            <tr>
+              <td>Notification</td>
+              <td>Configure Action Groups with SMS, voice, email, Azure mobile push, and fallback automation.</td>
+              <td>Recipient consent, country codes, rotation contacts.</td>
+            </tr>
+            <tr>
+              <td>Operations</td>
+              <td>Add test plan, runbook, dashboard, incident integration, and quarterly failover drills.</td>
+              <td>ITSM target and support ownership.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="section" id="short-term">
+        <div class="eyebrow">Short-term</div>
+        <h2>Stabilize the existing alerting gap</h2>
+        <div class="timeline">
+          <div class="timeline-item">
+            <div class="date">Week 1</div>
+            <div>
+              <h3>Proof of value</h3>
+              <p class="muted">Create a pilot Action Group with two or three test recipients. Validate SMS and voice delivery for target countries and carriers.</p>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="date">Weeks 2-3</div>
+            <div>
+              <h3>Source integration</h3>
+              <p class="muted">Implement Logic App or Function intake for the highest-value monitored mailbox and scheduler alert source. Emit normalized events into Azure Monitor.</p>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="date">Weeks 4-6</div>
+            <div>
+              <h3>Operational rollout</h3>
+              <p class="muted">Move Sev1 and Sev2 alerts to the new route, run parallel with existing VTEXT where available, and document support procedures.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="long-term">
+        <div class="eyebrow">Long-term</div>
+        <h2>Durable operating model</h2>
+        <div class="grid two">
+          <div class="card">
+            <h3>Preferred long-term path</h3>
+            <p class="muted">Standardize production support alerting on Azure Monitor Action Groups and alert processing rules. Use Azure Policy and templates to create consistent alerting patterns across applications.</p>
+            <ul>
+              <li>Action Groups per team or rotation.</li>
+              <li>Alert processing rules for maintenance windows.</li>
+              <li>Dashboards for delivery and incident metrics.</li>
+              <li>Quarterly tests of voice, SMS, email, and fallback paths.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Telephony-heavy path</h3>
+            <p class="muted">If AF Group needs programmable calls, IVR, recording, transcription, or call-flow logic, evaluate Teams Phone Extensibility with ACS Call Automation under the supported Teams-aligned scenarios.</p>
+            <ul>
+              <li>Confirm Teams Phone licensing and connectivity.</li>
+              <li>Validate supported scenarios with Microsoft guidance.</li>
+              <li>Avoid unsupported standalone ACS usage after July 31, 2028.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="cost">
+        <div class="eyebrow">Cost</div>
+        <h2>Cost model and drivers</h2>
+        <p class="muted">Actual pricing depends on region, volume, retention, and licensing. Use the Azure Pricing Calculator for final estimates.</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Component</th>
+              <th>Cost driver</th>
+              <th>How to control cost</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Azure Monitor alerts</td>
+              <td>Number and type of alert rules, evaluation frequency, and volume.</td>
+              <td>Use severity filters, deduplication, and route only actionable alerts to voice/SMS.</td>
+            </tr>
+            <tr>
+              <td>Action Groups</td>
+              <td>Notification channel usage such as SMS and voice calls.</td>
+              <td>Reserve voice calls for Sev1 or unacknowledged incidents; use email/push for lower severity.</td>
+            </tr>
+            <tr>
+              <td>Log Analytics</td>
+              <td>Data ingestion and retention.</td>
+              <td>Store compact normalized alert records, avoid verbose payloads, set retention to policy needs.</td>
+            </tr>
+            <tr>
+              <td>Logic Apps or Functions</td>
+              <td>Execution count, connector usage, hosting plan, and integration complexity.</td>
+              <td>Start consumption-based for low volume; move to Standard or Premium only if needed.</td>
+            </tr>
+            <tr>
+              <td>Teams Phone Extensibility</td>
+              <td>Teams Phone licensing, connectivity, and usage charges.</td>
+              <td>Use only for advanced programmable telephony requirements.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="section" id="requirements">
+        <div class="eyebrow">Requirements</div>
+        <h2>What is required</h2>
+        <div class="grid three">
+          <div class="card">
+            <h3>Business inputs</h3>
+            <ul>
+              <li>Critical alert definitions.</li>
+              <li>On-call rotations and escalation path.</li>
+              <li>Maintenance windows.</li>
+              <li>Compliance and audit retention requirements.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Technical inputs</h3>
+            <ul>
+              <li>Event Hub namespaces and payload examples.</li>
+              <li>Mailbox access pattern or Graph permissions.</li>
+              <li>Scheduler integration method.</li>
+              <li>Azure subscription and resource group strategy.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Operational inputs</h3>
+            <ul>
+              <li>Recipient phone numbers and country codes.</li>
+              <li>Opt-in and notification testing process.</li>
+              <li>Support ticket ownership.</li>
+              <li>Fallback contacts and ITSM workflow.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="options">
+        <div class="eyebrow">Other options</div>
+        <h2>Alternative solution comparison</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Option</th>
+              <th>Fit</th>
+              <th>Pros</th>
+              <th>Cons</th>
+              <th>Recommendation</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Azure Monitor Action Groups</td>
+              <td>Critical alert notification</td>
+              <td>Built-in SMS and voice, no custom telephony code, integrates with Azure alerts.</td>
+              <td>Limited message and call workflow customization.</td>
+              <td><span class="status good">Use first</span></td>
+            </tr>
+            <tr>
+              <td>Logic Apps plus Teams/email</td>
+              <td>Workflow and collaboration</td>
+              <td>Low-code, connectors, approval and ITSM integration.</td>
+              <td>Teams/email alone may not wake up on-call staff like voice/SMS.</td>
+              <td><span class="status good">Use as fallback</span></td>
+            </tr>
+            <tr>
+              <td>Teams Phone Extensibility</td>
+              <td>Programmable Microsoft telephony</td>
+              <td>Strategic path for supported Teams-aligned calling scenarios.</td>
+              <td>Requires Teams Phone architecture and licensing validation.</td>
+              <td><span class="status warn">Evaluate if needed</span></td>
+            </tr>
+            <tr>
+              <td>ACS SMS</td>
+              <td>Direct application SMS</td>
+              <td>Familiar Azure API pattern during transition.</td>
+              <td>Retirement scope; not long-term for new solution.</td>
+              <td><span class="status risk">Do not choose</span></td>
+            </tr>
+            <tr>
+              <td>Marketplace communications partner</td>
+              <td>Full CPaaS or on-call product</td>
+              <td>Rich escalation, acknowledgments, global SMS and voice features.</td>
+              <td>Vendor review, procurement, integration, and operational ownership required.</td>
+              <td><span class="status warn">Fallback option</span></td>
+            </tr>
+            <tr>
+              <td>Twilio</td>
+              <td>Full CPaaS</td>
+              <td>Strong SMS and voice APIs.</td>
+              <td>Currently out of scope per request.</td>
+              <td><span class="status risk">Excluded</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="section" id="risks">
+        <div class="eyebrow">Risks and decisions</div>
+        <h2>Key decisions to make</h2>
+        <div class="grid two">
+          <div class="card">
+            <h3>Risks</h3>
+            <ul>
+              <li>SMS and voice notification availability varies by country and recipient configuration.</li>
+              <li>Notification storms can occur if deduplication and suppression are not designed up front.</li>
+              <li>Existing email-to-SMS behavior may have masked missing incident ownership metadata.</li>
+              <li>ACS retirement scope makes direct ACS SMS unsuitable as a strategic replacement.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Decisions</h3>
+            <ul>
+              <li>Which alerts are Sev1 and require voice calls?</li>
+              <li>Where should the source of truth for on-call rotation live?</li>
+              <li>Should Teams or ITSM be the system of record for acknowledgment?</li>
+              <li>Is simple notification enough, or is programmable telephony required?</li>
+            </ul>
+          </div>
+        </div>
+        <div class="callout">
+          <strong>Guiding principle:</strong> Use the simplest built-in Azure capability that reliably wakes up the correct on-call owner. Add Teams Phone Extensibility only when business requirements exceed what Azure Monitor Action Groups can provide.
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Proposed next step</h2>
+        <p class="muted">Run a two-week pilot with one production support mailbox, one scheduler failure event, one Event Hub test message, and one Action Group containing current on-call contacts. Success criteria: SMS and voice delivery confirmed, no duplicate storms, audit trail captured, and support runbook approved.</p>
+      </section>
+
+      <div class="footer">
+        Built for AF Group critical alerting planning. This site summarizes Microsoft-native options based on ACS retirement guidance and Azure Monitor notification capabilities.
+      </div>
+    </main>
+  </div>
+  <script>
+    const links = Array.from(document.querySelectorAll("#sideNav a"));
+    const sections = links.map((link) => document.querySelector(link.getAttribute("href"))).filter(Boolean);
+    const mobileNav = document.querySelector("#mobileNav");
+
+    mobileNav.addEventListener("change", (event) => {
+      window.location.hash = event.target.value;
+    });
+
+    const observer = new IntersectionObserver((entries) => {
+      const visible = entries
+        .filter((entry) => entry.isIntersecting)
+        .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+      if (!visible) return;
+      const id = "#" + visible.target.id;
+      links.forEach((link) => link.classList.toggle("active", link.getAttribute("href") === id));
+      mobileNav.value = id;
+    }, { rootMargin: "-20% 0px -70% 0px", threshold: [0.1, 0.2, 0.3] });
+
+    sections.forEach((section) => observer.observe(section));
+  </script>
+</body>
+</html>
