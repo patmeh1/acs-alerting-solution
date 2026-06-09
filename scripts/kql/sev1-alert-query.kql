@@ -1,0 +1,15 @@
+// Sev1 critical alert query.
+// Backs the scheduled query alert rule deployed by infra/main.bicep.
+// Runs every 5 minutes, fires when any Sev1 record has arrived in the last
+// 5 minutes. Dedupes on the DedupeKey so two Sev1 records sharing a key
+// only ring the on-call once.
+
+let window = 5m;
+AlertEvents_CL
+| where TimeGenerated > ago(window)
+| where Severity_s == "Sev1"
+| summarize
+    Count = count(),
+    LatestSummary = arg_max(TimeGenerated, Summary_s)
+    by DedupeKey_s, Application_s, OwnerGroup_s
+| project DedupeKey_s, Application_s, OwnerGroup_s, Count, LatestSummary

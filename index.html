@@ -366,11 +366,15 @@
         <a href="#build-guide">Step-by-step build</a>
         <a href="#short-term">Short-term plan</a>
         <a href="#long-term">Long-term plan</a>
+        <a href="#bicep">Bicep &amp; scripts</a>
+        <a href="#running-example">Running example</a>
         <a href="#cost">Cost model</a>
+        <a href="#cost-calculator">Cost from calculator</a>
         <a href="#requirements">Requirements</a>
         <a href="#questions">Questions to resolve</a>
         <a href="#options">Other options</a>
         <a href="#risks">Risks and decisions</a>
+        <a href="#repo-files">Repo files</a>
       </nav>
     </aside>
     <main>
@@ -382,11 +386,15 @@
         <option value="#build-guide">Step-by-step build</option>
         <option value="#short-term">Short-term plan</option>
         <option value="#long-term">Long-term plan</option>
+        <option value="#bicep">Bicep &amp; scripts</option>
+        <option value="#running-example">Running example</option>
         <option value="#cost">Cost model</option>
+        <option value="#cost-calculator">Cost from calculator</option>
         <option value="#requirements">Requirements</option>
         <option value="#questions">Questions to resolve</option>
         <option value="#options">Other options</option>
         <option value="#risks">Risks and decisions</option>
+        <option value="#repo-files">Repo files</option>
       </select>
 
       <section class="hero" id="overview">
@@ -395,6 +403,9 @@
         <p class="lede">This solution replaces carrier email-to-SMS dependencies with Azure Monitor Action Groups for built-in SMS, voice call, email, Azure mobile push, and automation routing. It avoids using ACS SMS as a new strategic dependency because the attached ACS guidance places SMS in the retirement scope before July 31, 2028.</p>
         <div class="banner">
           <strong>Recommendation:</strong> Use Azure Monitor Action Groups for critical SMS and voice notifications. Use Logic Apps or Azure Functions to normalize incoming email, scheduler, and Event Hub signals into Azure Monitor alert signals. Use Teams Phone Extensibility only if programmable call workflows, IVR, or deeper telephony automation are required.
+        </div>
+        <div class="callout" style="margin-top:16px">
+          <strong>ACS retirement context.</strong> Microsoft announced Azure Communication Services retirement on <strong>22 July 2026</strong> with full retirement on <strong>31 July 2028</strong> &mdash; see the <a href="https://review.learn.microsoft.com/en-us/azure/communication-services/acs-retirement-and-breaking-changes-guide?branch=pr-en-us-307749" target="_blank" rel="noopener">retirement and breaking changes guide</a>. ACS SMS sits inside that scope, so it is not a strategic target for a net-new on-call alerting build. Azure Monitor Action Groups use Microsoft's own notification network and are <em>not</em> part of the ACS retirement.
         </div>
       </section>
 
@@ -822,6 +833,183 @@ Action: Optional Teams message to production support channel</code></pre>
         </div>
       </section>
 
+      <section class="section" id="bicep">
+        <div class="eyebrow">Bicep &amp; scripts</div>
+        <h2>One-shot deployable pilot</h2>
+        <p class="muted">A complete Bicep template and supporting scripts ship in this repository so the design is not just a slide deck. Everything below is real, validates with <code>az bicep build</code>, and deploys into a single resource group in roughly six minutes.</p>
+        <div class="grid two">
+          <div class="card">
+            <h3>What <code>infra/main.bicep</code> creates</h3>
+            <ul>
+              <li>Log Analytics workspace with a daily ingestion cap to control cost.</li>
+              <li>Workspace-based Application Insights for Function telemetry.</li>
+              <li>Storage account + Linux consumption plan + Python 3.11 Function App.</li>
+              <li>Event Hubs namespace (Standard, zone-redundant) with a <code>critical-alerts</code> hub and a Send+Listen rule for the Function.</li>
+              <li>Action Group with SMS, voice, email, Azure mobile push, and an optional Teams webhook receiver.</li>
+              <li>Scheduled query alert rule that fires on Sev1 records in <code>AlertEvents_CL</code>.</li>
+              <li>System-assigned managed identity on the Function for future least-privilege wiring.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Deploy</h3>
+            <pre><code>git clone https://github.com/patmeh1/acs-alerting-solution.git
+cd acs-alerting-solution
+
+# Edit oncallEmail / oncallPhoneNumber first.
+$EDITOR infra/main.parameters.json
+
+export RG=rg-af-critical-alerting-pilot
+export LOCATION=eastus
+./infra/deploy.sh</code></pre>
+            <p class="muted">The deploy script runs <code>az group create</code>, validates the Bicep, submits the deployment, and prints the outputs (Function name, Event Hubs namespace, Action Group resource id).</p>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Repo path</th>
+              <th>What it is</th>
+              <th>When you reach for it</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>infra/main.bicep</code></td>
+              <td>Single Bicep file that deploys the entire pilot.</td>
+              <td>Day one. This is the substrate everything else runs on.</td>
+            </tr>
+            <tr>
+              <td><code>infra/main.parameters.json</code></td>
+              <td>Sample parameters &mdash; replace email + phone before deploying.</td>
+              <td>Edit before each environment.</td>
+            </tr>
+            <tr>
+              <td><code>infra/deploy.sh</code></td>
+              <td>Wrapper that creates the RG, validates, and deploys.</td>
+              <td>One-line deploys from a workstation or pipeline.</td>
+            </tr>
+            <tr>
+              <td><code>scripts/normalize_alert/</code></td>
+              <td>Python v2 Function App: Event Hub trigger + HTTP test endpoint.</td>
+              <td><code>func azure functionapp publish</code> right after the Bicep finishes.</td>
+            </tr>
+            <tr>
+              <td><code>scripts/send-test-event.sh</code> / <code>.py</code></td>
+              <td>Publishes a synthetic Sev1 event to the Event Hub.</td>
+              <td>Smoke test the end-to-end pipe.</td>
+            </tr>
+            <tr>
+              <td><code>scripts/test-action-group.sh</code></td>
+              <td>Rings every Action Group channel directly via the management API.</td>
+              <td>Validating new on-call phone numbers before they go live.</td>
+            </tr>
+            <tr>
+              <td><code>scripts/logic-app-mailbox-monitor.json</code></td>
+              <td>Logic App definition that watches a shared mailbox and forwards normalized alerts to the Event Hub.</td>
+              <td>Replacing VTEXT email watchers.</td>
+            </tr>
+            <tr>
+              <td><code>scripts/teams-adaptive-card.json</code></td>
+              <td>Adaptive Card payload for the Teams webhook receiver.</td>
+              <td>Richer Teams notifications than plain text.</td>
+            </tr>
+            <tr>
+              <td><code>scripts/kql/sev1-alert-query.kql</code></td>
+              <td>The KQL behind the scheduled query alert rule.</td>
+              <td>Iterating on dedupe / severity logic.</td>
+            </tr>
+            <tr>
+              <td><code>scripts/kql/alert-delivery-audit.kql</code></td>
+              <td>Dashboard query joining alert events with Action Group diagnostics.</td>
+              <td>Audit &mdash; "was every Sev1 actually paged?"</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="callout">
+          <strong>Sample normalizer (excerpt from <code>scripts/normalize_alert/function_app.py</code>):</strong>
+          <pre><code>@app.event_hub_message_trigger(
+    arg_name="event",
+    event_hub_name=os.environ.get("EVENTHUB_NAME", "critical-alerts"),
+    connection="EVENTHUB_CONNECTION",
+)
+def normalize_from_eventhub(event: func.EventHubEvent) -> None:
+    payload = json.loads(event.get_body().decode("utf-8"))
+    normalized = _normalize(payload)
+    _emit(normalized)  # logging.error on Sev1 -&gt; AppInsights -&gt; alert rule -&gt; Action Group</code></pre>
+        </div>
+      </section>
+
+      <section class="section" id="running-example">
+        <div class="eyebrow">Running example</div>
+        <h2>End-to-end pilot in under 30 minutes</h2>
+        <p class="muted">The full walkthrough lives in <a href="https://github.com/patmeh1/acs-alerting-solution/blob/main/docs/running-example.md" target="_blank" rel="noopener"><code>docs/running-example.md</code></a>. The summary:</p>
+        <div class="timeline">
+          <div class="timeline-item">
+            <div class="date">~6 min</div>
+            <div>
+              <h3>Deploy infrastructure</h3>
+              <p class="muted"><code>./infra/deploy.sh</code> creates the RG, validates the Bicep, and submits the deployment. Outputs include the Function App name, Event Hubs namespace, and Action Group resource id.</p>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="date">~2 min</div>
+            <div>
+              <h3>Publish the Function</h3>
+              <p class="muted"><code>func azure functionapp publish</code> uploads the normalizer that handles every payload &mdash; Event Hub or HTTP &mdash; into the deployed Function App.</p>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="date">~1 min</div>
+            <div>
+              <h3>Smoke-test the Action Group</h3>
+              <p class="muted"><code>./scripts/test-action-group.sh Email Sms Voice AzureAppPush</code> rings every channel for every recipient via the createNotifications management API.</p>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="date">~5&ndash;10 min</div>
+            <div>
+              <h3>Send a synthetic Sev1 event</h3>
+              <p class="muted"><code>./scripts/send-test-event.sh</code> publishes a normalized payload to the Event Hub. Within one evaluation window the on-call phone should ring.</p>
+            </div>
+          </div>
+        </div>
+        <div class="grid two">
+          <div class="card">
+            <h3>Sample payload</h3>
+            <pre><code>{
+  "source": "claims-batch-scheduler",
+  "application": "ClaimsPipeline",
+  "severity": "Sev1",
+  "summary": "Claims pipeline batch job failed",
+  "details": "Job 'NightlyClaimsETL' failed at 2026-06-09T07:15:00Z. Last successful run &gt; 24h ago.",
+  "incidentId": "INC1738042500",
+  "ownerGroup": "DnA Production Support",
+  "eventTimeUtc": "2026-06-09T07:15:00Z",
+  "dedupeKey": "ClaimsPipeline:BatchFailure:Sev1"
+}</code></pre>
+          </div>
+          <div class="card">
+            <h3>Expected timing</h3>
+            <pre><code>t+0s   Event Hub receives payload
+t+~2s  Function normalizes &amp; logs CRITICAL_ALERT
+t+~2s  Application Insights / LAW ingest record
+t+&lt;5m  Scheduled query alert rule evaluates &amp; fires
+t+~5m  Action Group fans out:
+        - SMS
+        - Voice call
+        - Email
+        - Azure mobile push
+        - Teams adaptive card (optional)
+        - ITSM webhook (optional)
+End-to-end SLO: &le; 10 minutes from event to on-call ring.</code></pre>
+          </div>
+        </div>
+        <div class="callout">
+          <strong>Dedupe check:</strong> publish three identical events back-to-back &mdash; <code>./scripts/send-test-event.sh; ./scripts/send-test-event.sh; ./scripts/send-test-event.sh</code> &mdash; the alert rule should still fire <em>once</em> because the KQL summarizes by <code>DedupeKey_s</code>.
+        </div>
+      </section>
+
+
       <section class="section" id="short-term">
         <div class="eyebrow">Short-term</div>
         <h2>Stabilize the existing alerting gap</h2>
@@ -917,6 +1105,64 @@ Action: Optional Teams message to production support channel</code></pre>
           </tbody>
         </table>
       </section>
+
+      <section class="section" id="cost-calculator">
+        <div class="eyebrow">Cost from Azure calculator</div>
+        <h2>Monthly cost estimate &mdash; pilot vs production</h2>
+        <p class="muted">Pulled from the <a href="https://azure.microsoft.com/pricing/calculator/" target="_blank" rel="noopener">Azure Pricing Calculator</a> using East US, USD, pay-as-you-go list price (mid-2026). Re-run with your subscription's region, currency, and EA/MCA discounts before sign-off. Full line-item workings live in <a href="https://github.com/patmeh1/acs-alerting-solution/blob/main/docs/cost-estimate.md" target="_blank" rel="noopener"><code>docs/cost-estimate.md</code></a>.</p>
+        <div class="grid two">
+          <div class="card">
+            <h3>Pilot &mdash; 50 Sev1 alerts / month</h3>
+            <p class="muted">2 recipients (primary + backup). ~10,000 events ingested, ~1 GB / month Log Analytics ingestion.</p>
+            <table>
+              <thead>
+                <tr><th>Component</th><th>USD / mo</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Action Group &mdash; SMS (US, 100, first 100 free)</td><td>~$0.00</td></tr>
+                <tr><td>Action Group &mdash; voice (US, 100, first 10 free)</td><td>~$5.40</td></tr>
+                <tr><td>Action Group &mdash; email (1,100, first 1,000 free)</td><td>~$0.00</td></tr>
+                <tr><td>Action Group &mdash; Azure mobile push</td><td>$0.00</td></tr>
+                <tr><td>Azure Monitor &mdash; 1 scheduled query alert rule</td><td>~$1.50</td></tr>
+                <tr><td>Log Analytics &mdash; 1 GB ingestion @ $2.30/GB</td><td>~$2.30</td></tr>
+                <tr><td>Application Insights (via LAW)</td><td>$0.00</td></tr>
+                <tr><td>Event Hubs &mdash; Standard, 1 TU, zone-redundant</td><td>~$21.90</td></tr>
+                <tr><td>Function App &mdash; Consumption, within free grant</td><td>$0.00</td></tr>
+                <tr><td>Storage account &mdash; Standard_LRS</td><td>~$0.10</td></tr>
+                <tr><td>Logic Apps &mdash; Consumption mailbox monitor</td><td>~$0.10</td></tr>
+                <tr><td><strong>Total</strong></td><td><strong>&asymp; $31</strong></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="card">
+            <h3>Production &mdash; 500 Sev1 alerts / month</h3>
+            <p class="muted">2 recipients + Teams channel. ~250,000 events ingested, ~12 GB / month Log Analytics ingestion.</p>
+            <table>
+              <thead>
+                <tr><th>Component</th><th>USD / mo</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Action Group &mdash; SMS (US, 1,000, 900 billable @ ~$0.013)</td><td>~$11.70</td></tr>
+                <tr><td>Action Group &mdash; voice (US, 1,000, 990 billable @ ~$0.06)</td><td>~$59.40</td></tr>
+                <tr><td>Action Group &mdash; email (12,000, 11,000 billable @ $2/100k)</td><td>~$0.22</td></tr>
+                <tr><td>Action Group &mdash; push (12,000, 11,000 billable)</td><td>~$0.22</td></tr>
+                <tr><td>Action Group &mdash; webhook (Teams, free at this volume)</td><td>$0.00</td></tr>
+                <tr><td>Azure Monitor &mdash; 3 scheduled query alert rules</td><td>~$4.50</td></tr>
+                <tr><td>Log Analytics &mdash; 12 GB ingestion @ $2.30/GB</td><td>~$27.60</td></tr>
+                <tr><td>Event Hubs &mdash; Standard, 1 TU + 250M events</td><td>~$28.90</td></tr>
+                <tr><td>Function App &mdash; Consumption, 250K executions</td><td>~$0.50</td></tr>
+                <tr><td>Storage</td><td>~$0.50</td></tr>
+                <tr><td>Logic Apps &mdash; Consumption mailbox monitor</td><td>~$1.30</td></tr>
+                <tr><td><strong>Total</strong></td><td><strong>&asymp; $135</strong></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="callout">
+          <strong>Reading the table.</strong> Voice is the largest variable cost &mdash; reserve voice for Sev1 only and use email + push for everything else. Both stay effectively free at AF Group volumes. Event Hubs is the largest fixed cost; keep the namespace at 1 TU until measured ingress demands more.
+        </div>
+      </section>
+
 
       <section class="section" id="requirements">
         <div class="eyebrow">Requirements</div>
@@ -1089,6 +1335,51 @@ Action: Optional Teams message to production support channel</code></pre>
       <section class="section">
         <h2>Proposed next step</h2>
         <p class="muted">Run a two-week pilot with one production support mailbox, one scheduler failure event, one Event Hub test message, and one Action Group containing current on-call contacts. Success criteria: SMS and voice delivery confirmed, no duplicate storms, audit trail captured, and support runbook approved.</p>
+      </section>
+
+      <section class="section" id="repo-files">
+        <div class="eyebrow">Repo files</div>
+        <h2>Everything is in the repo</h2>
+        <p class="muted">Every artifact referenced on this page is committed to <a href="https://github.com/patmeh1/acs-alerting-solution" target="_blank" rel="noopener">github.com/patmeh1/acs-alerting-solution</a>.</p>
+        <div class="grid two">
+          <div class="card">
+            <h3>Infrastructure</h3>
+            <ul>
+              <li><a href="https://github.com/patmeh1/acs-alerting-solution/blob/main/infra/main.bicep" target="_blank" rel="noopener"><code>infra/main.bicep</code></a> &mdash; full Bicep template.</li>
+              <li><a href="https://github.com/patmeh1/acs-alerting-solution/blob/main/infra/main.parameters.json" target="_blank" rel="noopener"><code>infra/main.parameters.json</code></a> &mdash; sample parameters.</li>
+              <li><a href="https://github.com/patmeh1/acs-alerting-solution/blob/main/infra/deploy.sh" target="_blank" rel="noopener"><code>infra/deploy.sh</code></a> &mdash; deploy wrapper.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Scripts</h3>
+            <ul>
+              <li><a href="https://github.com/patmeh1/acs-alerting-solution/tree/main/scripts/normalize_alert" target="_blank" rel="noopener"><code>scripts/normalize_alert/</code></a> &mdash; Python Function App.</li>
+              <li><a href="https://github.com/patmeh1/acs-alerting-solution/blob/main/scripts/send-test-event.sh" target="_blank" rel="noopener"><code>scripts/send-test-event.sh</code></a> / <a href="https://github.com/patmeh1/acs-alerting-solution/blob/main/scripts/send-test-event.py" target="_blank" rel="noopener"><code>.py</code></a> &mdash; synthetic event publishers.</li>
+              <li><a href="https://github.com/patmeh1/acs-alerting-solution/blob/main/scripts/test-action-group.sh" target="_blank" rel="noopener"><code>scripts/test-action-group.sh</code></a> &mdash; direct Action Group smoke test.</li>
+              <li><a href="https://github.com/patmeh1/acs-alerting-solution/blob/main/scripts/logic-app-mailbox-monitor.json" target="_blank" rel="noopener"><code>scripts/logic-app-mailbox-monitor.json</code></a> &mdash; mailbox-watching Logic App.</li>
+              <li><a href="https://github.com/patmeh1/acs-alerting-solution/blob/main/scripts/teams-adaptive-card.json" target="_blank" rel="noopener"><code>scripts/teams-adaptive-card.json</code></a> &mdash; Teams Adaptive Card payload.</li>
+              <li><a href="https://github.com/patmeh1/acs-alerting-solution/blob/main/scripts/kql/sev1-alert-query.kql" target="_blank" rel="noopener"><code>scripts/kql/sev1-alert-query.kql</code></a> &mdash; alert KQL.</li>
+              <li><a href="https://github.com/patmeh1/acs-alerting-solution/blob/main/scripts/kql/alert-delivery-audit.kql" target="_blank" rel="noopener"><code>scripts/kql/alert-delivery-audit.kql</code></a> &mdash; audit KQL.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Documentation</h3>
+            <ul>
+              <li><a href="https://github.com/patmeh1/acs-alerting-solution/blob/main/docs/af-group-use-case.md" target="_blank" rel="noopener"><code>docs/af-group-use-case.md</code></a> &mdash; long-form AF Group writeup.</li>
+              <li><a href="https://github.com/patmeh1/acs-alerting-solution/blob/main/docs/running-example.md" target="_blank" rel="noopener"><code>docs/running-example.md</code></a> &mdash; 30-minute pilot walkthrough.</li>
+              <li><a href="https://github.com/patmeh1/acs-alerting-solution/blob/main/docs/cost-estimate.md" target="_blank" rel="noopener"><code>docs/cost-estimate.md</code></a> &mdash; per-line cost workings.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>External references</h3>
+            <ul>
+              <li><a href="https://review.learn.microsoft.com/en-us/azure/communication-services/acs-retirement-and-breaking-changes-guide?branch=pr-en-us-307749" target="_blank" rel="noopener">ACS retirement and breaking changes guide</a> &mdash; the source of the 22-Jul-2026 / 31-Jul-2028 dates.</li>
+              <li><a href="https://learn.microsoft.com/azure/azure-monitor/alerts/action-groups" target="_blank" rel="noopener">Azure Monitor Action Groups documentation</a>.</li>
+              <li><a href="https://azure.microsoft.com/pricing/details/monitor/" target="_blank" rel="noopener">Azure Monitor pricing</a> &mdash; per-notification list price.</li>
+              <li><a href="https://azure.microsoft.com/pricing/calculator/" target="_blank" rel="noopener">Azure Pricing Calculator</a> &mdash; rerun for your region and discounts.</li>
+            </ul>
+          </div>
+        </div>
       </section>
 
       <div class="footer">

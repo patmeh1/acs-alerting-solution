@@ -1,0 +1,10 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "<storage-connection-string>",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "APPLICATIONINSIGHTS_CONNECTION_STRING": "<app-insights-connection-string>",
+    "EVENTHUB_CONNECTION": "<event-hub-namespace-connection-string-with-Send+Listen-rights>",
+    "EVENTHUB_NAME": "critical-alerts"
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "type": "message",
+  "attachments": [
+    {
+      "contentType": "application/vnd.microsoft.card.adaptive",
+      "contentUrl": null,
+      "content": {
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "type": "AdaptiveCard",
+        "version": "1.5",
+        "msTeams": {
+          "width": "Full"
+        },
+        "body": [
+          {
+            "type": "Container",
+            "style": "attention",
+            "items": [
+              {
+                "type": "TextBlock",
+                "text": "🔴 Sev1 production alert",
+                "weight": "Bolder",
+                "size": "Large",
+                "color": "Light"
+              }
+            ]
+          },
+          {
+            "type": "FactSet",
+            "facts": [
+              { "title": "Application", "value": "${application}" },
+              { "title": "Source", "value": "${source}" },
+              { "title": "Incident", "value": "${incidentId}" },
+              { "title": "Owner", "value": "${ownerGroup}" },
+              { "title": "Event time (UTC)", "value": "${eventTimeUtc}" }
+            ]
+          },
+          {
+            "type": "TextBlock",
+            "text": "${summary}",
+            "weight": "Bolder",
+            "wrap": true
+          },
+          {
+            "type": "TextBlock",
+            "text": "${details}",
+            "wrap": true,
+            "isSubtle": true
+          }
+        ],
+        "actions": [
+          {
+            "type": "Action.OpenUrl",
+            "title": "Open runbook",
+            "url": "https://aka.ms/af-group-oncall-runbook"
+          },
+          {
+            "type": "Action.OpenUrl",
+            "title": "Acknowledge in ITSM",
+            "url": "https://example.servicenow.com/incident.do?sys_id=${incidentId}"
+          }
+        ]
+      }
+    }
+  ]
+}

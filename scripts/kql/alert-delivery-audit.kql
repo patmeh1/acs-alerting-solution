@@ -1,0 +1,26 @@
+// Alert delivery audit dashboard query.
+// Joins normalized alert events with Action Group delivery history so on-call
+// leads can see "was every Sev1 actually paged?" in a single chart.
+// Requires the diagnostic setting on the Action Group to ship logs to the
+// same Log Analytics workspace (table: AzureDiagnostics, Resource type:
+// ACTIONGROUPS).
+
+let window = 24h;
+let alerts =
+  AlertEvents_CL
+  | where TimeGenerated > ago(window)
+  | where Severity_s == "Sev1"
+  | project AlertTime = TimeGenerated, Application_s, DedupeKey_s, Summary_s, IncidentId_s;
+let deliveries =
+  AzureDiagnostics
+  | where TimeGenerated > ago(window)
+  | where ResourceType == "ACTIONGROUPS"
+  | project DeliveryTime = TimeGenerated, Status = ResultType, Channel = Category, ActionName = OperationName, CorrelationId = CorrelationId;
+alerts
+| join kind=leftouter (deliveries) on $left.IncidentId_s == $right.CorrelationId
+| summarize
+    Channels = make_set(Channel),
+    Statuses = make_set(Status),
+    DeliveryCount = count()
+    by AlertTime, Application_s, DedupeKey_s, Summary_s, IncidentId_s
+| order by AlertTime desc

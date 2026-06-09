@@ -1,0 +1,35 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "namePrefix": {
+      "value": "afalert"
+    },
+    "location": {
+      "value": "eastus"
+    },
+    "oncallEmail": {
+      "value": "oncall@example.com"
+    },
+    "oncallPhoneCountryCode": {
+      "value": "1"
+    },
+    "oncallPhoneNumber": {
+      "value": "5550101234"
+    },
+    "teamsWebhookUrl": {
+      "value": ""
+    },
+    "logAnalyticsDailyCapGb": {
+      "value": 1
+    },
+    "tags": {
+      "value": {
+        "workload": "critical-alerting",
+        "owner": "DnA-Production-Support",
+        "costCenter": "af-group-dna",
+        "environment": "pilot"
+      }
+    }
+  }
+}

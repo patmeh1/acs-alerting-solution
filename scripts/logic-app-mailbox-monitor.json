@@ -1,0 +1,105 @@
+{
+  "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "$connections": {
+      "defaultValue": {},
+      "type": "Object"
+    },
+    "eventHubNamespace": {
+      "type": "String",
+      "defaultValue": "afalert-ehns-replace"
+    },
+    "eventHubName": {
+      "type": "String",
+      "defaultValue": "critical-alerts"
+    },
+    "monitoredMailbox": {
+      "type": "String",
+      "defaultValue": "production-support@example.com"
+    },
+    "criticalKeywords": {
+      "type": "Array",
+      "defaultValue": [ "CRITICAL", "FAILED", "SEV1", "OUTAGE" ]
+    }
+  },
+  "triggers": {
+    "When_a_new_email_arrives_in_a_shared_mailbox": {
+      "type": "ApiConnection",
+      "recurrence": { "frequency": "Minute", "interval": 1 },
+      "inputs": {
+        "host": {
+          "connection": { "name": "@parameters('$connections')['office365']['connectionId']" }
+        },
+        "method": "get",
+        "path": "/v2/SharedMailbox/Mail/OnNewEmail",
+        "queries": {
+          "mailboxAddress": "@parameters('monitoredMailbox')",
+          "folderPath": "Inbox",
+          "importance": "Any",
+          "includeAttachments": false
+        }
+      }
+    }
+  },
+  "actions": {
+    "Is_critical_keyword_present": {
+      "type": "If",
+      "expression": {
+        "or": [
+          { "contains": [ "@toUpper(triggerBody()?['subject'])", "CRITICAL" ] },
+          { "contains": [ "@toUpper(triggerBody()?['subject'])", "FAILED" ] },
+          { "contains": [ "@toUpper(triggerBody()?['subject'])", "SEV1" ] },
+          { "contains": [ "@toUpper(triggerBody()?['subject'])", "OUTAGE" ] }
+        ]
+      },
+      "actions": {
+        "Build_normalized_alert": {
+          "type": "Compose",
+          "inputs": {
+            "source": "shared-mailbox-monitor",
+            "application": "@{coalesce(triggerBody()?['from'], 'unknown-sender')}",
+            "severity": "Sev1",
+            "summary": "@{triggerBody()?['subject']}",
+            "details": "@{triggerBody()?['bodyPreview']}",
+            "incidentId": "",
+            "ownerGroup": "DnA Production Support",
+            "eventTimeUtc": "@{utcNow()}",
+            "dedupeKey": "mailbox:@{triggerBody()?['subject']}"
+          }
+        },
+        "Send_event_to_Event_Hub": {
+          "type": "ApiConnection",
+          "runAfter": { "Build_normalized_alert": [ "Succeeded" ] },
+          "inputs": {
+            "host": {
+              "connection": { "name": "@parameters('$connections')['eventhubs']['connectionId']" }
+            },
+            "method": "post",
+            "path": "/@{encodeURIComponent(parameters('eventHubName'))}/events",
+            "body": "@outputs('Build_normalized_alert')"
+          }
+        },
+        "Post_audit_record_to_Teams_channel": {
+          "type": "ApiConnection",
+          "runAfter": { "Send_event_to_Event_Hub": [ "Succeeded" ] },
+          "inputs": {
+            "host": {
+              "connection": { "name": "@parameters('$connections')['teams']['connectionId']" }
+            },
+            "method": "post",
+            "path": "/flowbot/actions/notification/recipienttypes/channel",
+            "body": {
+              "messageBody": "Sev1 alert detected from monitored mailbox and forwarded to Event Hub: @{triggerBody()?['subject']}",
+              "recipient": {
+                "channelId": "REPLACE_WITH_CHANNEL_ID",
+                "groupId": "REPLACE_WITH_TEAM_ID"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "outputs": {}
+}
